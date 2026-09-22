@@ -68,8 +68,19 @@ def _looks_like_media(url: str) -> bool:
 
 def _blurb(err: str) -> str:
     lines = [ln for ln in (err or "").strip().splitlines() if ln.strip()]
-    tail = lines[-1] if lines else ""
+    tail = (lines[-1] if lines else "").lower()
+    if "certificate" in tail or "ssl" in tail or "connection has been closed" in tail:
+        return ("Couldn't reach that video from this server's network. "
+                "YouTube and many sites block datacenter IPs. "
+                "The reliable paths here are: upload the file directly, or "
+                "add your own yt-dlp cookies config. Direct .mp4/.webm links "
+                "from a permitted host also work.")
+    if "sign in to confirm" in tail or "not a bot" in tail:
+        return ("That site is asking for sign-in / a bot check, which this "
+                "server can't pass from a datacenter. Upload the file or use "
+                "a direct .mp4 link instead.")
     return f"Download failed — {tail[:220]}"
+
 
 
 def _ytdlp_fetch(yt: str, url: str, out_dir: str) -> dict:

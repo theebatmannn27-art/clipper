@@ -6,6 +6,7 @@ trim, then render 9:16 captioned clips and download them.
 No accounts, no billing: this is the MVP built directly on `py/`.
 """
 from __future__ import annotations
+import json
 import os
 import shutil
 import threading
@@ -236,6 +237,108 @@ def patch_job(job_id: str, body: dict):
     raise HTTPException(400, "Nothing recognised in PATCH body")
 
 
+@app.get("/api/jobs/{job_id}/caps/{name}")
+def get_captions(job_id: str, name: str):
+    """The editable caption list for one clip (clip-relative seconds)."""
+    j = store.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "Job not found")
+    path = os.path.join(store.job_dir(job_id), "caps", name + ".json")
+    if not os.path.exists(path):
+        # seed on the fly from the master transcript
+        try:
+            cue = worker.regenerate_clip_captions(j, store.job_dir(job_id), name)
+            return {"name": name, "cues": cue}
+        except Exception as e:
+            raise HTTPException(404, f"No captions yet: {e}")
+    return {"name": name, "cues": json.load(open(path))}
+
+
+@app.put("/api/jobs/{job_id}/caps/{name}")
+def put_captions(job_id: str, name: str, body: dict):
+    """Save the user's edited caption list for a clip."""
+    j = store.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "Job not found")
+    cues = body.get("cues", [])
+    # sanity-normalise
+    for c in cues:
+        c["start"] = float(c.get("start", 0))
+        c["end"] = float(c.get("end", c["start"] + 0.5))
+        c["text"] = str(c.get("text", ""))
+    cap_dir = os.path.join(store.job_dir(job_id), "caps")
+    os.makedirs(cap_dir, exist_ok=True)
+    open(os.path.join(cap_dir, name + ".json"), "w").write(
+        json.dumps(cues, indent=1))
+    # mirror count onto the clip entry for the UI
+    peaks = [dict(p) for p in j.get("peaks", [])]
+    for p in peaks:
+        if p.get("name") == name:
+            p["caption_count"] = len(cues)
+    store.update_job(job_id, peaks=peaks)
+    return {"name": name, "cues": cues}
+
+
+@app.post("/api/jobs/{job_id}/caps/{name}/regenerate")
+def regenerate_captions(job_id: str, name: str):
+    j = store.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "Job not found")
+    try:
+        cues = worker.regenerate_clip_captions(j, store.job_dir(job_id), name)
+    except Exception as e:
+        raise HTTPException(400, str(e))
+    peaks = [dict(p) for p in j.get("peaks", [])]
+    for p in peaks:
+        if p.get("name") == name:
+            p["caption_count"] = len(cues)
+    store.update_job(job_id, peaks=peaks)
+    return {"name": name, "cues": cues}
+
+
+@app.post("/api/jobs/{job_id}/clips-new")
+def add_clip(job_id: str, body: dict):
+    """Add a new clip (as a peak) directly — an extra section the user coins."""
+    j = store.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "Job not found")
+    start = float(body.get("start", 0))
+    end = float(body.get("end", start + 40.0))
+    duration = float(j.get("duration") or 0)
+    if duration:
+        start = min(max(0.0, start), max(0.0, duration - 1.0))
+        end = min(max(start + 1.0, end), duration)
+    peaks = [dict(p) for p in j.get("peaks", [])]
+    names = {p.get("name") for p in peaks}
+    idx = 1
+    while f"clip{idx:02d}" in names:
+        idx += 1
+    name = f"clip{idx:02d}"
+    peak = {
+        "name": name,
+        "start": round(start, 2),
+        "end": round(end, 2),
+        "peak": round((start + end) / 2, 2),
+        "score": 0.0,
+        "title": body.get("title", ""),
+        "hook": body.get("hook", body.get("title", "")),
+        "selected": True,
+        "custom": True,
+        "thumb": _thumb_for(job_id, name, round((start + end) / 2, 2)),
+    }
+    peaks.append(peak)
+    store.update_job(job_id, peaks=peaks)
+    # seed an (empty) caption list so the caption endpoint doesn't 404
+    cap_dir = os.path.join(store.job_dir(job_id), "caps")
+    os.makedirs(cap_dir, exist_ok=True)
+    try:
+        worker.regenerate_clip_captions(store.get_job(job_id),
+                                        store.job_dir(job_id), name)
+    except Exception:
+        open(os.path.join(cap_dir, f"{name}.json"), "w").write("[]")
+    return store.get_job(job_id)
+
+
 @app.post("/api/jobs/{job_id}/render")
 def start_render(job_id: str, body: dict | None = None):
     j = store.get_job(job_id)
@@ -270,6 +373,18 @@ def _clip_path(job_id: str, name: str) -> str:
     jobdir = store.job_dir(job_id)
     base = os.path.basename(name)  # no traversal
     return os.path.join(jobdir, "out", base)
+
+
+def _thumb_for(job_id: str, name: str, t: float) -> str:
+    """Generate a thumbnail for a newly added clip and return its URL."""
+    jobdir = store.job_dir(job_id)
+    src = os.path.join(jobdir, "source.mp4")
+    j = store.get_job(job_id)
+    cx = float((j.get("options") or {}).get("cx", 0.5))
+    ok = worker.gen_thumbnail(src, t, os.path.join(jobdir, "thumbs", f"{name}.jpg"),
+                              width=360, cx=cx)
+    return f"/api/jobs/{job_id}/thumb/{name}.jpg?v={int(time.time())}" if ok \
+        else f"/api/jobs/{job_id}/thumb/{name}.jpg"
 
 
 @app.get("/api/jobs/{job_id}/clips/{name}")

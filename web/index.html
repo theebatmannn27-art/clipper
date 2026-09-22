@@ -97,21 +97,11 @@ label.lbl{display:block;font-size:12.5px;font-weight:600;color:var(--muted);marg
 .bar{height:8px;background:var(--bg2);border-radius:99px;overflow:hidden}
 .bar>div{height:100%;background:var(--grad);border-radius:99px;transition:width .4s ease}
 .stage-big{font-size:15px;font-weight:600;color:var(--text)}
-/* ---------- review board ---------- */
+/* ---------- section headings / boards ---------- */
 .review-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0}
 .review-head h2{font-size:20px;margin:0;font-weight:800;letter-spacing:-.02em}
 .review-head .sub{color:var(--muted);font-size:13.5px;width:100%}
-.board{display:grid;gap:16px}
-.clip{display:grid;grid-template-columns:128px 1fr;gap:16px;background:var(--card);
-  border:1px solid var(--line);border-radius:16px;padding:16px;transition:.15s}
-.clip.off{opacity:.45}
-.clip .thumb{width:128px;height:227px;border-radius:10px;object-fit:cover;
-  background:var(--bg2);border:1px solid var(--line)}
-.clip .body{display:flex;flex-direction:column;gap:9px;min-width:0}
-.clip .row1{display:flex;align-items:center;gap:10px}
-.clip .name{font-weight:700;font-size:14px}
-.clip .score{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace}
-.clip input[type=text]{padding:9px 11px;font-size:13px}
+/* switches (on/off per scene) */
 .switch{position:relative;width:40px;height:22px;margin-left:auto;flex:none}
 .switch input{opacity:0;width:0;height:0}
 .slider{position:absolute;cursor:pointer;inset:0;background:var(--bg2);
@@ -120,10 +110,7 @@ label.lbl{display:block;font-size:12.5px;font-weight:600;color:var(--muted);marg
   background:var(--muted);border-radius:50%;transition:.2s}
 .switch input:checked+.slider{background:var(--accent);border-color:var(--accent)}
 .switch input:checked+.slider:before{transform:translateX(18px);background:#fff}
-.timechip{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;
-  background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:3px 7px}
 .range{width:100%;accent-color:var(--accent)}
-.trim-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
 /* ---------- downloads ---------- */
 .dl-grid{display:grid;gap:14px}
 .dl-item{display:flex;align-items:center;gap:14px;background:var(--card);
@@ -149,11 +136,70 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
 #modal.open{display:grid}
 #modal video{max-width:min(420px,92vw);max-height:80vh;border-radius:16px;
   box-shadow:0 24px 70px rgba(0,0,0,.6)}
+/* ---------- stepper / wizard ---------- */
+.stepper{display:flex;gap:8px;align-items:center;margin:20px 0 22px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;
+  color:var(--faint);cursor:pointer;padding:6px 4px}
+.step .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;background:var(--bg2);border:1px solid var(--line2);transition:.15s}
+.step.active{color:var(--text)}
+.step.active .n{background:var(--grad);border:0}
+.step.done{color:var(--muted)}
+.step.done .n{background:rgba(124,92,255,.2);border:1px solid rgba(124,92,255,.5);color:var(--accent2)}
+.step-sep{width:22px;height:1px;background:var(--line2)}
+/* clip grid inside editor */
+.clips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.clip-card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  overflow:hidden;transition:.15s;padding:12px}
+.clip-card .frame{position:relative;cursor:pointer}
+.clip-card .frame img{width:100%;aspect-ratio:9/16;object-fit:cover;border-radius:10px;
+  background:var(--bg2);display:block}
+.clip-card .frame .dur{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.7);
+  color:#fff;font-size:11px;padding:2px 7px;border-radius:6px;font-family:'JetBrains Mono',monospace}
+.clip-card .name-row{display:flex;align-items:center;gap:8px;margin-top:10px}
+.clip-card .name{font-weight:700;font-size:13px}
+.clip-card .switch{margin-left:auto}
+.clip-card.off .frame img,.clip-card.off .name-row{opacity:.4}
+.clip-card input[type=text]{font-size:12.5px;padding:7px 9px}
+.clip-card label{font-size:11px;color:var(--faint);display:block;margin:8px 0 3px;font-weight:600}
+.clip-card .range-wrap{display:flex;align-items:center;gap:8px;margin-top:8px}
+.clip-card .range-wrap input[type=range]{flex:1}
+.clip-card .range-wrap .val{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:64px;text-align:right}
+.row-actions{display:flex;gap:8px;margin-top:10px}
+/* remove / delete section */
+.card.ghost-card{border-style:dashed;display:grid;place-items:center;min-height:120px;
+  color:var(--muted);cursor:pointer}
+.card.ghost-card:hover{border-color:var(--accent);color:var(--text)}
+/* captions editor */
+.cap-clips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.cap-chip{padding:7px 13px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;
+  background:var(--bg2);border:1px solid var(--line2);color:var(--muted)}
+.cap-chip.active{background:var(--grad);border:0;color:#fff}
+.cap-edit-item{display:grid;grid-template-columns:92px 1fr 28px;gap:10px;align-items:start;margin-bottom:8px}
+.cap-edit-item input{font-size:13px;padding:9px 10px}
+.cap-edit-item .del{background:none;border:0;color:var(--err);cursor:pointer;font-size:16px;
+  padding:8px 4px}
+.cap-preview{background:var(--bg);border:1px solid var(--line);border-radius:16px;
+  display:grid;place-items:center;position:sticky;top:20px;overflow:hidden}
+.cap-preview img{max-width:100%;border-radius:12px}
+.cap-foot{display:flex;gap:10px;flex-wrap:wrap}
+.add-cue input{width:100%}
+/* banner */
+.banner{display:flex;align-items:center;gap:12px;border-radius:12px;padding:12px 16px;
+  font-size:13.5px;margin-bottom:16px}
+.banner.warn{background:rgba(246,184,58,.08);border:1px solid rgba(246,184,58,.35);color:#f0d191}
+.banner.info{background:rgba(124,92,255,.08);border:1px solid rgba(124,92,255,.35);color:#c9b8ff}
+/* section nav footer */
+.sec-nav{display:flex;gap:12px;margin-top:24px;align-items:center}
+.sec-nav .spacer{flex:1}
 @media(max-width:560px){
   .grid{grid-template-columns:1fr}
   .clip{grid-template-columns:96px 1fr}
   .clip .thumb{width:96px;height:171px}
   .hero h2{font-size:27px}
+  .clips-grid{grid-template-columns:1fr 1fr}
+  .cap-edit{grid-template-columns:1fr}
+  .cap-edit-item{grid-template-columns:82px 1fr 28px}
 }
 </style>
 </head>
@@ -168,17 +214,17 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
     <div class="pill" id="capPill">checking…</div>
   </header>
 
-  <!-- ============ NEW ============ -->
+  <!-- ============ STEP 1 — IMPORT & ANALYZE ============ -->
   <section id="screen-new">
     <div class="hero">
       <h2>Turn any video into <span>scroll-stopping Shorts</span></h2>
-      <p>Paste a link or drop a file. We find the peak moments, caption them,
-         and cut 1080×1920 clips ready for Shorts, Reels &amp; TikTok.</p>
+      <p>Paste a link or drop a file. We fetch it, analyse it, and mark the best
+         moments with their timeframes — then you cut, caption, and export.</p>
     </div>
 
     <div class="tabs">
-      <button class="tab active" id="tabUrl">🔗 From URL</button>
-      <button class="tab" id="tabFile">📤 Upload</button>
+      <button class="tab active" id="tabUrl">🔗 From YouTube / link</button>
+      <button class="tab" id="tabFile">📤 Upload file</button>
     </div>
 
     <div class="card" id="panelUrl">
@@ -224,7 +270,7 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
           </select>
         </div>
         <div>
-          <label class="lbl">Framing</label>
+          <label class="lbl">Output frame</label>
           <select id="optMode">
             <option value="crop">Crop (fill frame)</option>
             <option value="blur">Blur backdrop (letterbox)</option>
@@ -249,7 +295,7 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
       </div>
     </div>
 
-    <button class="btn" id="goBtn"><span>✨</span> Find the moments</button>
+    <button class="btn" id="goBtn"><span>✨</span> Analyse &amp; find the best parts</button>
     <div class="progress-wrap hidden" id="progressWrap">
       <div class="prog-row"><span class="stage-big" id="stageText">Working…</span>
         <span id="pctText">0%</span></div>
@@ -258,18 +304,47 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
     <p class="mini" id="noteArea"></p>
   </section>
 
-  <!-- ============ REVIEW ============ -->
-  <section id="screen-review" class="hidden">
+  <!-- ============ STEP 2 — EDITOR (cut / trim scenes) ============ -->
+  <section id="screen-editor" class="hidden">
     <div class="review-head">
-      <button class="btn ghost sm" id="backBtn">← New video</button>
-      <h2 id="reviewTitle">Review your clips</h2>
-      <div class="sub" id="reviewSub"></div>
+      <div><h2>✂️ Editor — cut &amp; trim your scenes</h2>
+      <div class="sub">Each card is a detected best moment with its timeframe.
+        Toggle scenes in/out, drag the ends to trim, rename the hook. Discard what you don't need.</div></div>
     </div>
-    <div id="renderBanner" class="hidden"></div>
-    <div class="board" id="board"></div>
-    <div style="display:flex;gap:12px;margin-top:22px">
-      <button class="btn ghost" id="reanalyzeBtn">↺ Re-detect with new settings</button>
-      <button class="btn" id="renderBtn">🎬 Render N clips</button>
+    <div class="banner warn hidden" id="editorBanner"></div>
+    <div class="clips-grid" id="editorGrid"></div>
+    <div class="card ghost-card" id="addClipCard">
+      <span>＋ Add a section manually (custom timeframe)</span>
+    </div>
+    <div class="sec-nav">
+      <button class="btn ghost" id="backToSource">← Back</button>
+      <div class="spacer"></div>
+      <button class="btn" id="toCaptionsBtn">Next: Subtitles →</button>
+    </div>
+  </section>
+
+  <!-- ============ STEP 3 — SUBTITLE SESSION ============ -->
+  <section id="screen-captions" class="hidden">
+    <div class="review-head">
+      <div><h2>💬 Subtitles — short-video captions</h2>
+      <div class="sub">Edit the burned-in captions clip by clip. Add, delete or re-time
+        cues; the preview shows exactly how it'll look. No transcript? Add cues by hand.</div></div>
+    </div>
+    <div class="banner info hidden" id="capsBanner"></div>
+    <div class="cap-clips" id="capClips"></div>
+    <div class="card" style="display:grid;grid-template-columns:1fr 200px;gap:16px" id="capLayout">
+      <div class="cap-edit">
+        <div id="capList"></div>
+        <button class="btn ghost sm" id="addCueBtn">＋ Add a cue</button>
+      </div>
+      <div class="cap-preview" id="capPreview">
+        <img id="capPreviewImg" src="" alt="caption preview">
+      </div>
+    </div>
+    <div class="sec-nav">
+      <button class="btn ghost" id="backToEditor">← Back to editor</button>
+      <div class="spacer"></div>
+      <button class="btn" id="renderBtn">🎬 Render N clips →</button>
     </div>
     <div class="progress-wrap hidden" id="renderProgressWrap">
       <div class="prog-row"><span class="stage-big" id="renderStage">Rendering…</span>
@@ -278,12 +353,12 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
     </div>
   </section>
 
-  <!-- ============ DONE ============ -->
+  <!-- ============ STEP 4 — EXPORT ============ -->
   <section id="screen-done" class="hidden">
     <div class="review-head">
-      <button class="btn ghost sm" id="backBtn2">← New video</button>
-      <h2>🎉 Your clips are ready</h2>
-      <div class="sub">Loudness-normalised to −14 LUFS, 1080×1920, captions burned in. Upload straight to Shorts / Reels / TikTok.</div>
+      <div><h2>🎉 Your clips are ready</h2>
+      <div class="sub">Loudness-normalised to −14 LUFS, 1080×1920, captions burned in.
+        Upload straight to Shorts / Reels / TikTok — in the frame you chose.</div></div>
     </div>
     <div class="dl-grid" id="dlGrid"></div>
     <div style="display:flex;gap:12px;margin-top:22px;flex-wrap:wrap">
@@ -306,318 +381,335 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
 <script>
 "use strict";
 const $ = id => document.getElementById(id);
-const fmtTime = s => {
-  if (s==null || isNaN(s)) return "–:––";
-  const m = Math.floor(s/60), sec = Math.floor(s%60);
-  return `${m}:${String(sec).padStart(2,"0")}`;
-};
-const fmtSize = b => {
-  if (b==null) return "";
-  if (b>1e6) return (b/1e6).toFixed(1)+" MB";
-  if (b>1e3) return (b/1e3).toFixed(0)+" KB";
-  return b+" B";
-};
+const fmt = s => { if (s==null || isNaN(s)) return "\u2013:\u2013\u2013";
+    const m=Math.floor(Math.abs(s)/60), sec=Math.floor(Math.abs(s)%60);
+    return (s<0?"-":"")+m+":"+String(sec).padStart(2,"0"); };
+const fmtSize = b => b==null?"":(b>1e6?(b/1e6).toFixed(1)+" MB":(b>1e3?(b/1e3).toFixed(0)+" KB":b+" B"));
 let toastTimer;
-function toast(msg, err=false){
-  const t = $("toast");
-  t.textContent = msg;
-  t.className = "show" + (err ? " err" : "");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>t.className="", 3200);
-}
+function toast(msg, err=false){ const t=$("toast"); t.textContent=msg;
+  t.className="show"+(err?" err":""); clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.className="",3200); }
 
-const state = { mode:"url", file:null, vttFile:null, meta:null, job:null, poll:null };
+const S = { mode:"url", file:null, vttFile:null, meta:{}, job:null, poll:null,
+            caps:new Map(), activeCap:null, rethumbTimer:null, dirty:false };
+
+/* ---------- screen switching ---------- */
+function show(screen){
+  ["screen-new","screen-editor","screen-captions","screen-done"]
+    .forEach(id=>$(id).classList.toggle("hidden", id!==screen));
+  window.scrollTo(0,0);
+}
 
 /* ---------- capability pill ---------- */
 async function loadMeta(){
   const r = await fetch("/api/meta").catch(()=>null);
-  state.meta = r ? await r.json() : {};
-  const p = $("capPill"), h = $("urlHint");
-  const m = state.meta;
-  if (m && m.youtube_ready){
-    p.textContent = "● YouTube ready";
-    p.style.color = "var(--ok)";
-  } else if (m && m.ytdlp){
-    p.textContent = "● direct links work · YouTube needs cookies";
-    p.style.borderColor = "rgba(246,184,58,.5)";
-    h.textContent = "YouTube links work when yt-dlp has a cookies config; direct .mp4/.webm links always work. Uploading a file is the most reliable path here.";
-  } else {
-    p.textContent = "● uploads + direct links";
-    h.textContent = "Paste a direct video link, or upload a file — both always work.";
-  }
+  S.meta = r ? await r.json() : {};
+  const m = S.meta, p = $("capPill"), h = $("urlHint");
+  if (m && m.youtube_ready){ p.textContent="\u25cf YouTube ready"; p.style.color="var(--ok)"; }
+  else if (m && m.ytdlp){
+    p.textContent="\u25cf direct links work \u00b7 YouTube needs cookies";
+    p.style.borderColor="rgba(246,184,58,.5)";
+    h.textContent="YouTube links work when yt-dlp has a cookies config; direct .mp4/.webm links always work. Uploading a file is the most reliable path here.";
+  } else { p.textContent="\u25cf uploads + direct links";
+    h.textContent="Paste a direct video link, or upload a file \u2014 both always work."; }
 }
 
-/* ---------- tabs ---------- */
-function setTab(which){
-  state.mode = which;
+/* ---------- tabs / upload ---------- */
+function setTab(which){ S.mode=which;
   $("tabUrl").classList.toggle("active", which==="url");
   $("tabFile").classList.toggle("active", which==="file");
   $("panelUrl").classList.toggle("hidden", which!=="url");
-  $("panelFile").classList.toggle("hidden", which!=="file");
-}
-$("tabUrl").onclick = ()=>setTab("url");
-$("tabFile").onclick = ()=>setTab("file");
-
-/* ---------- upload ---------- */
+  $("panelFile").classList.toggle("hidden", which!=="file"); }
+$("tabUrl").onclick=()=>setTab("url");
+$("tabFile").onclick=()=>setTab("file");
 const drop=$("drop"), fi=$("fileInput");
-drop.onclick = ()=>fi.click();
-["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.add("over");}));
-["dragleave","drop"].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.remove("over");}));
-drop.addEventListener("drop", e=>{
-  const f = e.dataTransfer.files[0];
-  if(f){ state.file=f; showPicked(f); }
-});
-fi.onchange = ()=>{ if(fi.files[0]){ state.file=fi.files[0]; showPicked(fi.files[0]); } };
-$("vttInput").onchange = ()=>{ state.vttFile = $("vttInput").files[0] || null; };
-$("fileClear").onclick = ()=>{ state.file=null; fi.value=""; $("filePicked").style.display="none"; };
-function showPicked(f){ $("fileName").textContent = f.name; $("filePicked").style.display="flex"; }
+drop.onclick=()=>fi.click();
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0]; if(f){S.file=f;showPicked(f);}});
+fi.onchange=()=>{if(fi.files[0]){S.file=fi.files[0];showPicked(fi.files[0]);}};
+$("vttInput").onchange=()=>{S.vttFile=$("vttInput").files[0]||null;};
+$("fileClear").onclick=()=>{S.file=null;fi.value="";$("filePicked").style.display="none";};
+function showPicked(f){$("fileName").textContent=f.name;$("filePicked").style.display="flex";}
+$("optCx").oninput=e=>{const v=parseFloat(e.target.value);
+  const txt=v<0.45?"left-ish":v>0.55?"right-ish":"centre";
+  $("cxLabel").textContent=`${txt} (${v.toFixed(2)})`;};
 
-/* ---------- cx label ---------- */
-$("optCx").oninput = e=>{
-  const v = parseFloat(e.target.value);
-  const txt = v<0.45 ? "left-ish" : v>0.55 ? "right-ish" : "centre";
-  $("cxLabel").textContent = `${txt} (${v.toFixed(2)})`;
-};
-
-/* ---------- submit ---------- */
 function readOptions(){
-  return {
-    len: parseFloat($("optLen").value)||40,
-    count: parseInt($("optCount").value)||5,
-    style: $("optStyle").value,
-    mode: $("optMode").value,
-    hook: $("optHook").value==="1",
-    brand: $("optBrand").value.trim(),
-    cx: parseFloat($("optCx").value)||0.5,
-  };
-}
-$("goBtn").onclick = async ()=>{
-  const url = $("urlInput").value.trim();
-  if (state.mode==="url" && !url){ toast("Paste a link first", true); return; }
-  if (state.mode==="file" && !state.file){ toast("Choose a file first", true); return; }
+  return { len:parseFloat($("optLen").value)||40, count:parseInt($("optCount").value)||5,
+    style:$("optStyle").value, mode:$("optMode").value,
+    hook:$("optHook").value==="1", brand:$("optBrand").value.trim(),
+    cx:parseFloat($("optCx").value)||0.5 }; }
 
-  const fd = new FormData();
-  const o = readOptions();
-  if (state.mode==="url") fd.append("url", url);
-  if (state.file) fd.append("file", state.file);
-  if (state.vttFile) fd.append("vtt_file", state.vttFile);
+function selectedPeaks(){ return (S.job?.peaks||[]).filter(p=>p.selected!==false); }
+
+/* ---------- submit to analyze ---------- */
+$("goBtn").onclick = async ()=>{
+  const url=$("urlInput").value.trim();
+  if (S.mode==="url" && !url){ toast("Paste a link first", true); return; }
+  if (S.mode==="file" && !S.file){ toast("Choose a file first", true); return; }
+  const fd=new FormData(); const o=readOptions();
+  if (S.mode==="url") fd.append("url", url);
+  if (S.file) fd.append("file", S.file);
+  if (S.vttFile) fd.append("vtt_file", S.vttFile);
   fd.append("len_sec", o.len); fd.append("count", o.count);
   fd.append("style", o.style); fd.append("mode", o.mode);
-  fd.append("hook", o.hook?"true":"false"); fd.append("brand", o.brand);
-  fd.append("cx", o.cx);
-
-  $("goBtn").disabled = true;
-  $("progressWrap").classList.remove("hidden");
-  $("noteArea").textContent = "";
-  setStage("Uploading & starting…", 0.03);
+  fd.append("hook", o.hook?"true":"false"); fd.append("brand", o.brand); fd.append("cx", o.cx);
+  $("goBtn").disabled=true; $("progressWrap").classList.remove("hidden");
+  $("noteArea").textContent=""; setStage("Fetching & analysing\u2026", 0.03);
   try{
     const r = await fetch("/api/jobs", {method:"POST", body:fd});
-    if(!r.ok){
-      const t = await r.text();
-      throw new Error("server said: " + (r.status) + (t ? " — "+t.slice(0,160) : ""));
-    }
-    const job = await r.json();
-    state.job = job;
-    watchJob(job.id);
-  }catch(e){
-    toast(e.message || "Failed to start", true);
-    $("goBtn").disabled = false;
-    $("progressWrap").classList.add("hidden");
-  }
+    if(!r.ok){ const t=await r.text(); throw new Error("server said "+r.status+(t?" \u2014 "+t.slice(0,160):"")); }
+    const job = await r.json(); S.job=job; watchAnalyze(job.id);
+  }catch(e){ toast(e.message||"Failed to start", true);
+    $("goBtn").disabled=false; $("progressWrap").classList.add("hidden"); }
 };
-function setStage(text, pct){
-  $("stageText").textContent = text;
-  $("pctText").textContent = Math.round((pct||0)*100)+"%";
-  $("barFill").style.width = Math.round((pct||0)*100)+"%";
-}
-function watchJob(id){
-  clearInterval(state.poll);
-  state.poll = setInterval(async ()=>{
-    try{
-      const r = await fetch("/api/jobs/"+id);
-      const j = await r.json();
-      state.job = j;
-      setStage(j.stage || "Working…", j.progress||0);
-      if (j.state==="review"){ enterReview(j); }
-      else if (j.state==="failed"){ fail(j); }
+function setStage(text,pct){ $("stageText").textContent=text;
+  $("pctText").textContent=Math.round((pct||0)*100)+"%";
+  $("barFill").style.width=Math.round((pct||0)*100)+"%"; }
+function watchAnalyze(id){
+  clearInterval(S.poll);
+  S.poll=setInterval(async ()=>{
+    try{ const j=await (await fetch("/api/jobs/"+id)).json(); S.job=j;
+      setStage(j.stage||"Working\u2026", j.progress||0);
+      if (j.state==="review"){ enterEditor(j); }
+      else if (j.state==="failed"){ failAnalyze(j); }
       else if (j.state==="done"){ enterDone(j); }
-    }catch(e){}
-  }, 1200);
+    }catch(e){} }, 1200);
 }
-function fail(j){
-  clearInterval(state.poll);
-  $("goBtn").disabled = false;
-  $("progressWrap").classList.add("hidden");
-  toast(j.error || "Something went wrong", true);
-  $("noteArea").innerHTML = '⚠️ <b>'+(j.error||"Failed")+'</b><br>'+
-    '<span style="color:var(--faint)">Tip: try uploading the video file directly — that path always works. YouTube links are often bot-blocked from the cloud IP running this demo.</span>';
+function failAnalyze(j){ clearInterval(S.poll); $("goBtn").disabled=false;
+  $("progressWrap").classList.add("hidden"); toast(j.error||"Something went wrong", true);
+  $("noteArea").innerHTML='\u26a0\ufe0f <b>'+(j.error||"Failed")+'</b><br>'+
+   '<span style="color:var(--faint)">Tip: upload the video file directly \u2014 that path always works. YouTube links are often bot-blocked from the cloud IP running this demo.</span>'; }
+
+/* ============================================================
+   STEP 2 \u2014 EDITOR
+   ============================================================ */
+function enterEditor(j){
+  clearInterval(S.poll); S.job=j; S.dirty=false;
+  $("goBtn").disabled=false; $("progressWrap").classList.add("hidden");
+  show("screen-editor"); renderEditor();
 }
-function enterReview(j){
-  clearInterval(state.poll);
-  $("goBtn").disabled = false;
-  $("progressWrap").classList.add("hidden");
-  $("screen-new").classList.add("hidden");
-  $("screen-review").classList.remove("hidden");
-  $("screen-done").classList.add("hidden");
-  $("reviewTitle").textContent = j.source_url ? "Review your clips" : "Review your clips";
-  $("reviewSub").textContent = j.source_filename || j.source_url || "";
-  renderBoard(j);
-}
-function renderBoard(j){
-  const board = $("board");
-  board.innerHTML = "";
-  if (!j.peaks || !j.peaks.length){
-    board.innerHTML = '<div class="card">No peaks found in this video. Try a different clip length or source.</div>';
-    return;
-  }
-  j.peaks.forEach((p,i)=>{
-    const el = document.createElement("div");
-    el.className = "clip" + (p.selected===false ? " off":"");
-    const t0 = p.title||"", h0 = p.hook||"";
-    el.innerHTML = `
-      <img class="thumb" src="${p.thumb}" alt="">
-      <div class="body">
-        <div class="row1">
-          <span class="name">${p.name}</span>
-          <span class="timechip">${fmtTime(p.start)} – ${fmtTime(p.end)}</span>
-          <span class="score">peak ${p.score!=null?p.score.toFixed(2):"–"}</span>
-          <label class="switch" title="include this clip">
-            <input type="checkbox" class="sel" ${p.selected!==false?"checked":""}>
-            <span class="slider"></span>
-          </label>
-        </div>
-        <input type="text" class="hook" value="${h0.replace(/"/g,"&quot;")}" placeholder="Hook line (burned at the top)">
-        <input type="text" class="title" value="${t0.replace(/"/g,"&quot;")}" placeholder="Title / description">
-        <div class="trim-row">
-          <div>
-            <input type="number" class="start" value="${p.start}" step="0.5" min="0">
-          </div>
-          <div>
-            <input type="number" class="end" value="${p.end}" step="0.5" min="0">
-          </div>
-        </div>
+function renderEditor(){
+  const grid=$("editorGrid"); grid.innerHTML="";
+  const peaks=S.job.peaks||[];
+  if(!peaks.length){ grid.innerHTML='<div class="card">No scenes detected. Try different settings or add sections manually.</div>'; }
+  peaks.forEach((p,i)=>{
+    const el=document.createElement("div");
+    el.className="clip-card"+(p.selected===false?" off":"");
+    const dur=((p.end||0)-(p.start||0));
+    const h0=(p.hook||"").replace(/"/g,"&quot;");
+    const t0=(p.title||"").replace(/"/g,"&quot;");
+    el.innerHTML=`
+      <div class="frame" title="click to preview frame">
+        <img src="${p.thumb}" alt="">
+        <span class="dur">${fmt(p.start)} \u2013 ${fmt(p.end)} (${Math.round(dur)}s)</span>
+      </div>
+      <div class="name-row"><span class="name">${p.name}</span>
+        <label class="switch" title="use this scene"><input type="checkbox" class="sel" ${p.selected!==false?"checked":""}><span class="slider"></span></label>
+      </div>
+      <label>Hook (burned at top)</label>
+      <input type="text" class="hook" value="${h0}" placeholder="The line that stops the scroll">
+      <div class="range-wrap" title="trim start">
+        <span style="font-size:11px;color:var(--faint)">in</span>
+        <input type="range" class="rstart" min="0" max="${p.end}" step="0.5" value="${p.start}">
+        <span class="val">${fmt(p.start)}</span>
+      </div>
+      <div class="range-wrap" title="trim end">
+        <span style="font-size:11px;color:var(--faint)">out</span>
+        <input type="range" class="rend" min="${p.start}" max="${Math.max(p.end, p.start+1)}" step="0.5" value="${p.end}">
+        <span class="val">${fmt(p.end)}</span>
+      </div>
+      <div class="row-actions">
+        <button class="btn ghost sm cut-del" style="color:var(--err);border-color:rgba(255,93,93,.4)">Remove</button>
       </div>`;
-    el.querySelector(".sel").onchange = e=>{
-      p.selected = e.target.checked;
-      el.classList.toggle("off", !p.selected);
-      syncRenderBtn();
-    };
-    el.querySelector(".hook").oninput = e=>{ p.hook = e.target.value; };
-    el.querySelector(".title").oninput = e=>{ p.title = e.target.value; };
-    el.querySelector(".start").onchange = e=>{ p.start = parseFloat(e.target.value)||0; };
-    el.querySelector(".end").onchange = e=>{ p.end = parseFloat(e.target.value)||0; };
-    el.querySelector(".thumb").onclick = ()=>previewThumb(p);
-    board.appendChild(el);
+    el.querySelector(".sel").onchange=e=>{ p.selected=e.target.checked;
+      el.classList.toggle("off",!p.selected); S.dirty=true; };
+    el.querySelector(".hook").oninput=e=>{ p.hook=e.target.value; S.dirty=true; };
+    const rs=el.querySelector(".rstart"); rs.oninput=e=>{ p.start=parseFloat(e.target.value); if(p.start>p.end)p.end=p.start;
+      updateRanges(el,p); S.dirty=true; scheduleThumb(p, p.start+((p.end-p.start)/3)); };
+    el.querySelector(".rend").oninput=e=>{ p.end=parseFloat(e.target.value); if(p.end<p.start)p.start=p.end;
+      updateRanges(el,p); S.dirty=true; };
+    el.querySelector(".frame").onclick=()=>{ const m=$("modal"),v=$("modalVideo");
+      v.src=p.thumb; m.classList.add("open"); };
+    el.querySelector(".cut-del").onclick=()=>{ p.selected=false;
+      el.classList.add("off"); S.dirty=true; toast("Removed \u2014 the scene stays saved just case, toggle it back with the switch.",true); };
+    grid.appendChild(el);
   });
-  syncRenderBtn();
 }
-function syncRenderBtn(){
-  const j = state.job; if(!j) return;
-  const n = j.peaks.filter(p=>p.selected!==false).length;
-  $("renderBtn").textContent = "🎬 Render " + n + " clip" + (n===1?"":"s");
+function updateRanges(el,p){
+  const rs=el.querySelector(".rstart"), re=el.querySelector(".rend");
+  rs.max=p.end; re.min=p.start; re.max=Math.max(p.end, p.start+1);
+  rs.parentElement.querySelector(".val").textContent=fmt(p.start);
+  re.parentElement.querySelector(".val").textContent=fmt(p.end);
+  el.querySelector(".dur").textContent=`${fmt(p.start)} \u2013 ${fmt(p.end)} (${Math.round(p.end-p.start)}s)`;
 }
-async function saveEdits(){
-  const j = state.job; if(!j) return;
-  await fetch("/api/jobs/"+j.id, {method:"PATCH",
+function scheduleThumb(p,t){
+  clearTimeout(S.rethumbTimer);
+  S.rethumbTimer=setTimeout(async ()=>{
+    try{ await fetch(`/api/jobs/${S.job.id}` , { method:"PATCH", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ rethumb:{ name:p.name, t }}) });
+      const img=document.querySelector(`.clip-card img[src*=\"${p.name}.jpg\"]`);
+      if(img) img.src=p.thumb+"?t="+Date.now();
+    }catch(e){}
+  }, 450);
+}
+async function saveEditorThen(next){
+  if(S.dirty){ try{ await fetch(`/api/jobs/${S.job.id}`, { method:"PATCH",
+    headers:{"Content-Type":"application/json"}, body: JSON.stringify({ peaks: S.job.peaks })}); }catch(e){} S.dirty=false; }
+  if(next) next();
+}
+$("toCaptionsBtn").onclick=()=>{ if(!selectedPeaks().length){ toast("Keep at least one scene", true); return; }
+  saveEditorThen(()=>enterCaptions()); };
+$("backToSource").onclick=()=>{ saveEditorThen(()=>show("screen-new")); };
+$("addClipCard").onclick=async ()=>{
+  toast("Adding a 40s section at 0:00 \u2014 trim it in the editor.");
+  const r=await fetch(`/api/jobs/${S.job.id}/clips-new`, { method:"POST",
     headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({peaks: j.peaks})}).catch(()=>{});
+    body: JSON.stringify({ start:0, end:40, title:"New section", hook:"" })});
+  if(r.ok){ S.job=await r.json(); renderEditor(); }
+};
+
+/* ============================================================
+   STEP 3 \u2014 SUBTITLE SESSION
+   ============================================================ */
+async function enterCaptions(){
+  show("screen-captions");
+  const peaks=selectedPeaks(); S.caps=new Map();
+  const chips=$("capClips"); chips.innerHTML="";
+  const banner=$("capsBanner");
+  if(!S.job.captions){ banner.classList.remove("hidden");
+    banner.textContent="No transcript was found for this video \u2014 add captions by hand with \u201c+ Add a cue\u201d."; }
+  else banner.classList.add("hidden");
+  peaks.forEach((p,i)=>{
+    const b=document.createElement("button"); b.className="cap-chip"+(i===0?" active":"");
+    b.textContent=p.name+(p.caption_count!=null?` \u00b7 ${p.caption_count}` : "");
+    b.onclick=()=>{ document.querySelectorAll(".cap-chip").forEach(x=>x.classList.remove("active"));
+      b.classList.add("active"); loadCapEditor(p); };
+    chips.appendChild(b);
+  });
+  if(peaks.length) loadCapEditor(peaks[0]); else { $("capList").innerHTML='<p class="mini">No scenes selected.</p>'; }
 }
-function previewThumb(p){
-  // show a fresh frame ~at the clip start using a hidden endpoint-less trick:
-  // we simply point the modal at the thumbnail for now; full previews come
-  // after rendering.
-  const m = $("modal"), v = $("modalVideo");
-  v.src = p.thumb; m.classList.add("open");
+async function loadCapEditor(p){
+  if(S.dirty){ try{ await fetch(`/api/jobs/${S.job.id}`,{method:"PATCH",
+    headers:{"Content-Type":"application/json"}, body: JSON.stringify({peaks:S.job.peaks})}); }catch(e){} S.dirty=false; }
+  S.activeCap=p;
+  let cues=[];
+  if(S.caps.has(p.name)) cues=S.caps.get(p.name);
+  else {
+    try{ const r=await fetch(`/api/jobs/${S.job.id}/caps/${p.name}`);
+      if(r.ok){ cues=(await r.json()).cues||[]; } else cues=[];
+    }catch(e){ cues=[]; }
+    S.caps.set(p.name,cues);
+  }
+  p.caption_count=cues.length; updateChip(p);
+  const prev=document.querySelector(".cap-chip.active");
+  const list=$("capList"); list.innerHTML="";
+  if(!cues.length){ list.innerHTML='<p class="mini" style="text-align:left">No auto-captions for this scene yet. Add cues below with their timings.</p>'; }
+  cues.forEach((c,i)=>list.appendChild(cueRow(p,c,i)));
+  $("capPreviewImg").src=p.thumb;
 }
-$("modal").onclick = e=>{ if(e.target.id==="modal"){ $("modalVideo").pause(); $("modal").classList.remove("open"); } };
+function updateChip(p){ const chips=document.querySelectorAll(".cap-chip");
+  chips.forEach(c=>{ if(c.textContent.startsWith(p.name)) c.textContent=p.name+(p.caption_count!=null?` \u00b7 ${p.caption_count}`:""); }); }
+function cueRow(p,c,i){
+  const row=document.createElement("div"); row.className="cap-edit-item";
+  row.innerHTML=`
+    <input type="number" class="cstart" value="${c.start}" step="0.1" min="0">
+    <input type="text" class="ctext" value="${c.text.replace(/"/g,"&quot;")}" placeholder="caption text">
+    <button class="del" title="delete">\u2715</button>`;
+  const save=()=>{ c.start=parseFloat(row.querySelector(".cstart").value)||0;
+    c.text=row.querySelector(".ctext").value; S.caps.set(p.name, S.caps.get(p.name));
+    p.caption_count=S.caps.get(p.name).length; updateChip(p); };
+  row.querySelector(".cstart").onchange=save;
+  row.querySelector(".ctext").oninput=save;
+  row.querySelector(".del").onclick=()=>{ S.caps.get(p.name).splice(i,1);
+    p.caption_count=S.caps.get(p.name).length; updateChip(p); row.remove(); };
+  return row;
+}
+$("addCueBtn").onclick=()=>{ const p=S.activeCap; if(!p) return;
+  const cues=S.caps.get(p.name)||[];
+  const c={start: cues.length? Math.round((cues[cues.length-1].end)*10)/10 : 0,
+           end:0, text:""};
+  c.start=Math.round(c.start*10)/10;
+  cues.push(c); S.caps.set(p.name,cues);
+  $("capList").querySelectorAll(".mini").forEach(x=>x.remove());
+  $("capList").appendChild(cueRow(p,c,cues.length-1));
+  p.caption_count=cues.length; updateChip(p);
+  c.start && c.start; // no-op keep simple
+};
+
+/* save captions helper (normalise end times) */
+async function persistCaptions(){
+  if(!S.activeCap) return;
+  const p=S.activeCap; const cues=(S.caps.get(p.name)||[]).map((c,i)=>{
+    const arr=S.caps.get(p.name);
+    c.end = (i+1<arr.length) ? Math.min(arr[i+1].start-0.02, c.start+5.5) : c.start+1.2;
+    return c;
+  });
+  S.caps.set(p.name,cues);
+  await fetch(`/api/jobs/${S.job.id}/caps/${p.name}`, { method:"PUT",
+    headers:{"Content-Type":"application/json"}, body: JSON.stringify({ cues })}).catch(()=>{});
+}
 
 /* ---------- render ---------- */
-$("renderBtn").onclick = async ()=>{
-  const j = state.job; if(!j) return;
-  if (!j.peaks.filter(p=>p.selected!==false).length){ toast("Select at least one clip", true); return; }
-  const opts = readOptions();
-  $("renderProgressWrap").classList.remove("hidden");
-  $("renderBtn").disabled = true;
-  await saveEdits();
+$("renderBtn").onclick=async ()=>{
+  const peaks=selectedPeaks(); if(!peaks.length){ toast("Keep at least one scene", true); return; }
+  $("renderProgressWrap").classList.remove("hidden"); $("renderBtn").disabled=true;
+  await saveEditorThen(null);
+  await persistCaptions();
   try{
-    const r = await fetch("/api/jobs/"+j.id+"/render", {
-      method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({peaks: j.peaks, options: opts})
-    });
-    const jj = await r.json();
-    state.job = jj;
-    watchRender(j.id);
+    const r=await fetch(`/api/jobs/${S.job.id}/render`, { method:"POST",
+      headers:{"Content-Type":"application/json"}, body: JSON.stringify({peaks:S.job.peaks, options:readOptions()}) });
+    S.job=await r.json(); watchRender(S.job.id);
   }catch(e){ toast("Render failed to start", true); }
 };
 function watchRender(id){
-  clearInterval(state.poll);
-  state.poll = setInterval(async ()=>{
-    try{
-      const j = await (await fetch("/api/jobs/"+id)).json();
-      if (j.state==="rendering"){
-        $("renderStage").textContent = j.stage || "Rendering…";
-        $("renderPct").textContent = Math.round((j.progress||0)*100)+"%";
-        $("renderBarFill").style.width = Math.round((j.progress||0)*100)+"%";
-      } else if (j.state==="done"){
-        enterDone(j);
-      } else if (j.state==="review"){
-        // render failed -> back to review with error
-        clearInterval(state.poll);
-        $("renderProgressWrap").classList.add("hidden");
-        $("renderBtn").disabled = false;
-        toast(j.render_error || j.error || "Render failed", true);
-      }
+  clearInterval(S.poll);
+  S.poll=setInterval(async ()=>{
+    try{ const j=await (await fetch("/api/jobs/"+id)).json();
+      if(j.state==="rendering"){ $("renderStage").textContent=j.stage||"Rendering\u2026";
+        $("renderPct").textContent=Math.round((j.progress||0)*100)+"%";
+        $("renderBarFill").style.width=Math.round((j.progress||0)*100)+"%"; }
+      else if(j.state==="done"){ enterDone(j); }
+      else if(j.state==="review"){ clearInterval(S.poll);
+        $("renderProgressWrap").classList.add("hidden"); $("renderBtn").disabled=false;
+        toast(j.render_error||j.error||"Render failed", true); }
     }catch(e){}
-  }, 1000);
+  },1000);
 }
+$("backToEditor").onclick=async ()=>{ await persistCaptions(); show("screen-editor"); renderEditor(); };
+
+/* ============================================================
+   STEP 4 \u2014 EXPORT
+   ============================================================ */
 function enterDone(j){
-  clearInterval(state.poll);
-  state.job = j;
-  $("screen-new").classList.add("hidden");
-  $("screen-review").classList.add("hidden");
-  $("screen-done").classList.remove("hidden");
-  $("zipBtn").href = `/api/jobs/${j.id}/zip`;
-  const g = $("dlGrid"); g.innerHTML = "";
-  (j.clips||[]).forEach((c,i)=>{
-    const el = document.createElement("div");
-    el.className = "dl-item";
-    el.innerHTML = `
-      <div class="ic">🎬</div>
-      <div class="meta">
-        <div class="t">${c.name}.mp4</div>
-        <div class="s">${fmtTime(c.start)}–${fmtTime(c.end)} · ${fmtSize(c.size)} · ${c.hook||""}</div>
-      </div>
+  clearInterval(S.poll); S.job=j;
+  $("renderProgressWrap").classList.add("hidden"); $("renderBtn").disabled=false;
+  show("screen-done");
+  $("zipBtn").href=`/api/jobs/${j.id}/zip`;
+  const g=$("dlGrid"); g.innerHTML="";
+  (j.clips||[]).forEach((c)=>{
+    const el=document.createElement("div"); el.className="dl-item";
+    el.innerHTML=`
+      <div class="ic">\ud83c\udfac</div>
+      <div class="meta"><div class="t">${c.name}.mp4</div>
+        <div class="s">${fmt(c.start)}\u2013${fmt(c.end)} \u00b7 ${fmtSize(c.size)} \u00b7 ${c.caption_count??""} captions \u00b7 ${c.hook||""}</div></div>
       <div class="acts">
-        <button class="btn ghost sm play" data-u="${c.url}">▶ Preview</button>
-        <a class="btn sm" href="${c.url}" download>⬇ Download</a>
+        <button class="btn ghost sm play" data-u="${c.url}">\u25b6 Preview</button>
+        <a class="btn sm" href="${c.url}" download>\u2b07 Download</a>
         ${c.caption_url?`<a class="btn ghost sm" href="${c.caption_url}" download>.srt</a>`:""}
       </div>`;
-    el.querySelector(".play").onclick = ()=>{
-      const m=$("modal"), v=$("modalVideo");
-      v.src = c.url; m.classList.add("open"); v.play().catch(()=>{});
-    };
+    el.querySelector(".play").onclick=()=>{ const m=$("modal"),v=$("modalVideo");
+      v.src=c.url; m.classList.add("open"); v.play().catch(()=>{}); };
     g.appendChild(el);
   });
 }
-$("editBtn").onclick = ()=>{
-  $("screen-done").classList.add("hidden");
-  $("screen-review").classList.remove("hidden");
-  $("renderProgressWrap").classList.add("hidden");
-  $("renderBtn").disabled = false;
-};
-$("backBtn").onclick = $("backBtn2").onclick = $("newBtn").onclick = ()=>{
-  clearInterval(state.poll);
-  state.job = null;
-  $("screen-review").classList.add("hidden");
-  $("screen-done").classList.add("hidden");
-  $("screen-new").classList.remove("hidden");
-  window.scrollTo(0,0);
-};
-$("reanalyzeBtn").onclick = ()=>{
-  $("goBtn").disabled = false;
-  $("backBtn").click();
-  toast("Adjust the settings above and hit “Find the moments” again");
-};
+$("editBtn").onclick=()=>{ show("screen-editor"); renderEditor(); };
+$("newBtn").onclick=()=>{ clearInterval(S.poll); S.job=null; S.caps=new Map(); S.dirty=false;
+  show("screen-new"); };
+$("modal").onclick=e=>{ if(e.target.id==="modal"){ $("modalVideo").pause(); $("modal").classList.remove("open"); } };
+
+window.addEventListener("beforeunload", ()=>{ if(S.dirty) return "You have unsaved edits"; });
 
 loadMeta();
 </script>

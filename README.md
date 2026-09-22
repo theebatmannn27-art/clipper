@@ -16,18 +16,22 @@ clips ready for Shorts / Reels / TikTok.
 PORT=9000 ./serve.sh  # change the port
 ```
 
-The app:
+The app is a guided, four-session editor flow:
 
-1. **Source** — paste a direct video link *or* upload a file (mp4/webm/mkv/mov),
-   optionally with a `.vtt`/`.srt` subtitle file for burned-in captions.
-2. **Detect** — it runs the same `py/` pipeline underneath (subtitle parse →
-   loudness/speech-density peak detection) with live progress.
-3. **Review** — a board of the top moments with auto-generated thumbnails.
-   Edit each clip's **hook** and **title**, trim the start/end, and toggle
-   clips on/off.
-4. **Render** — 1080×1920, captions burned in, loudness normalised to −14 LUFS,
-   then download clips individually or as one `.zip`, and preview them in the
-   browser.
+1. **Fetch & analyse** — paste a YouTube/direct link or upload a file
+   (mp4/webm/mkv/mov), optionally with a `.vtt`/`.srt`. The underlying `py/`
+   pipeline downloads it, parses subtitles, and detects the **best moments,
+   each marked with its timeframe** (peak score, start/end, auto hook/title).
+2. **Editor session** — a board of the detected scenes. Cut and trim: drag the
+   in/out points, toggle a scene off to remove it (it's kept, just in case),
+   rename hooks, or add a brand-new section with a custom timeframe.
+3. **Subtitle session** — clip-by-clip caption editing, the Shorts-style
+   burned-in captions. Add / delete / re-time / reword cues, with a live frame
+   preview. No transcript? Type cues by hand. Auto-generated cues are editable,
+   not set in stone.
+4. **Export** — 1080×1920 in your chosen frame (crop or blurred-fill), captions
+   burned in, loudness normalised to −14 LUFS; preview in-browser and download
+   clips individually or as one `.zip`.
 
 Stack: FastAPI + a single-file vanilla-JS frontend in `web/` + a small worker
 that reuses `py/` directly. Job state lives in `data/` (gitignored). No accounts
@@ -109,7 +113,7 @@ python3 py/cut.py video.mp4 --peaks work/peaks.json --cues work/cues.json \
 | file | role |
 |---|---|
 | `serve.sh` | starts the web app (creates `.venv`, runs FastAPI on `:8080`) |
-| `app/main.py` | FastAPI API — jobs, review/patch, render, clip downloads |
+| `app/main.py` | FastAPI API — jobs, review/patch, captions CRUD, render, downloads |
 | `app/worker.py` | job pipeline & render step (reuses `py/` for everything) |
 | `app/store.py` | JSON-backed job store (`data/state.json`) |
 | `app/dl.py` | downloader: yt-dlp (w/ user config) → plain HTTP fallback |
@@ -123,6 +127,15 @@ python3 py/cut.py video.mp4 --peaks work/peaks.json --cues work/cues.json \
 | `py/assgen.py` | generates the styled ASS captions |
 | `py/ffmpeg_path.py` | shared ffmpeg resolver (PATH → static imageio-ffmpeg build) |
 | `demo/` | sample output clips from the test fixture |
+
+### API surface
+
+`POST /api/jobs` (multipart: `url` or `file`(+`vtt_file`), plus `len_sec`,
+`count`, `style`, `mode`, `hook`, `brand`, `cx`) · `GET /api/jobs/{id}` ·
+`PATCH /api/jobs/{id}` (edit `peaks` or `options`) · `POST …/clips-new` (add a
+custom section) · `GET/PUT /api/jobs/{id}/caps/{name}` + `POST …/regenerate`
+(per-clip captions) · `POST /api/jobs/{id}/render` · `GET …/clips/{name}.mp4`,
+`…/caps`, `…/thumbs`, `…/zip`.
 
 ## Output specs
 

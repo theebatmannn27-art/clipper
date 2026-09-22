@@ -25,7 +25,6 @@ sys.path.insert(0, PYDIR)
 from ffmpeg_path import get_ffmpeg  # noqa: E402
 from vttparse import parse_vtt, group, to_srt, retime_cues, retime_words, Word  # noqa: E402
 from peaks import find_peaks  # noqa: E402
-from cut import render as render_cuts  # noqa: E402
 from assgen import build_ass, punch_cues  # noqa: E402
 
 FFMPEG = get_ffmpeg()
@@ -161,12 +160,30 @@ def run_through_review(job: dict, jobdir: str, src: str, vtt: str | None,
 
     json.dump(cands, open(os.path.join(jobdir, "peaks.json"), "w"), indent=1)
 
+    # 5. per-clip captions: every clip gets its own editable caption list so the
+    # subtitle session can freely add/remove/edit cues without re-transcribing.
+    words = ([Word(w["t"], w["text"]) for w in json.load(open(words_path))]
+             if words_path and os.path.exists(words_path) else None)
+    cap_dir = os.path.join(jobdir, "caps")
+    os.makedirs(cap_dir, exist_ok=True)
+    # master cue list for the whole video (used to seed new clips on demand)
+    all_cues = json.load(open(cues_path)) if cues_path and os.path.exists(cues_path) else []
+    json.dump(all_cues, open(os.path.join(jobdir, "cues.json"), "w"), indent=1)
+
     for i, c in enumerate(cands, 1):
         c.setdefault("name", f"clip{i:02d}")
         c.setdefault("title", c.get("hook") or f"Clip {i}")
         c.setdefault("hook", c.get("title") or c.get("hook", ""))
         c["selected"] = True
         c["thumb"] = f"/api/jobs/{job_id}/thumb/{c['name']}.jpg"
+        # shorten the clip start so captions map cleanly to the retimed frame
+        clip_cues = _retime_for_clip(all_cues, words, c["start"],
+                                     c["end"] - c["start"], {}, opts)
+        name = c["name"]
+        open(os.path.join(cap_dir, f"{name}.json"), "w").write(
+            json.dumps(clip_cues, indent=1))
+        c["caption_url"] = f"/api/jobs/{job_id}/caps/{name}.json"
+        c["caption_count"] = len(clip_cues)
     update = {
         "state": "review",
         "progress": 1.0,
@@ -182,7 +199,8 @@ def run_through_review(job: dict, jobdir: str, src: str, vtt: str | None,
 
 
 def render_clips(job: dict, jobdir: str, progress) -> dict:
-    """Render the final vertical clips from the (possibly user-edited) peaks."""
+    """Render the final vertical clips from the (possibly user-edited) peaks
+    AND the user-edited per-clip captions (the subtitle session output)."""
     opts = job.get("options", {})
     peaks = job.get("peaks", [])
     if not peaks:
@@ -192,20 +210,10 @@ def render_clips(job: dict, jobdir: str, progress) -> dict:
     if not os.path.exists(src):
         raise RuntimeError("Source video is missing from storage.")
 
-    cues_path = _abs(jobdir, "cues.json")
-    words_path = _abs(jobdir, "words.json")
-    cues = json.load(open(cues_path)) if os.path.exists(cues_path) else None
-    words = ([Word(w["t"], w["text"]) for w in json.load(open(words_path))]
-             if os.path.exists(words_path) else None)
-
     outdir = os.path.join(jobdir, "out")
-    os.makedirs(outdir, exist_ok=True)
-
-    mode = opts.get("mode", "crop")
-    style = opts.get("style", "block")
-    hook = bool(opts.get("hook", True))
-    brand = opts.get("brand", "")
-    cx = float(opts.get("cx", 0.5))
+    capdir = os.path.join(outdir, "captions")
+    os.makedirs(capdir, exist_ok=True)
+    user_caps_dir = os.path.join(jobdir, "caps")
 
     selected = [p for p in peaks if p.get("selected", True)]
     total = max(1, len(selected))
@@ -215,28 +223,129 @@ def render_clips(job: dict, jobdir: str, progress) -> dict:
         name = p.get("name") or f"clip{i:02d}"
         progress(f"Rendering {name} ({i}/{total})…",
                  0.05 + 0.9 * (i - 1) / total)
-        # cut.py writes into <outdir>/captions/ and <outdir>/<name>.mp4
-        outs = render_cuts(src, [p], cues, words, outdir,
-                           mode=mode, cx=cx, hook=hook, brand=brand,
-                           cap_style=style)
-        if not outs:
+        dur = float(p["end"] - p["start"])
+        # prefer the user-edited caption list from the subtitle session
+        cap_file = os.path.join(user_caps_dir, f"{name}.json")
+        if os.path.exists(cap_file):
+            clip_cues = json.load(open(cap_file))
+        else:
+            # fall back to re-deriving from the source transcript (legacy path)
+            cues_path = _abs(jobdir, "cues.json")
+            words_path = _abs(jobdir, "words.json")
+            cues = json.load(open(cues_path)) if os.path.exists(cues_path) else []
+            words = ([Word(w["t"], w["text"]) for w in json.load(open(words_path))]
+                     if os.path.exists(words_path) else None)
+            clip_cues = _retime_for_clip(
+                cues, words, float(p["start"]), dur, {}, opts)
+
+        mk = render_one_clip(src, p, clip_cues, opts, outdir)
+        if not mk:
             raise RuntimeError(f"Render failed for {name} "
                                f"(check ffmpeg/disk — see server log).")
-        clip_file = outs[0]
-        fn = os.path.basename(clip_file)
         entry = {
             "name": name,
             "start": p.get("start"),
             "end": p.get("end"),
             "hook": p.get("hook", ""),
             "title": p.get("title", ""),
-            "url": f"/api/jobs/{job['id']}/clips/{fn}",
+            "caption_count": len(clip_cues),
+            "url": f"/api/jobs/{job['id']}/clips/{name}.mp4",
             "caption_url": f"/api/jobs/{job['id']}/clips/captions/{name}.srt",
-            "size": os.path.getsize(clip_file),
+            "size": os.path.getsize(os.path.join(outdir, f"{name}.mp4")),
         }
         made.append(entry)
     progress("Finishing up…", 1.0)
     return {"clips": made}
+
+
+def render_one_clip(video: str, p: dict, clip_cues: list, opts: dict,
+                    outdir: str) -> bool:
+    """Render a single 9:16 clip with the given (already clip-relative) cues.
+
+    Mirrors cut.py's per-clip work but keeps the whole style pipeline here so
+    user-edited captions are honoured verbatim. Returns True on success.
+    """
+    from assgen import build_ass
+    from vttparse import to_srt
+    name = p["name"]
+    st, en = float(p["start"]), float(p["end"])
+    dur = max(1.0, en - st)
+    capdir = os.path.join(outdir, "captions")
+    os.makedirs(capdir, exist_ok=True)
+    out_mp4 = os.path.join(outdir, f"{name}.mp4")
+
+    ass_path = os.path.join(capdir, f"{name}.ass")
+    hook_text = (p.get("hook") or "") if opts.get("hook", True) else ""
+    build_ass(ass_path, clip_cues, dur,
+              hook=hook_text, brand=opts.get("brand", ""),
+              style=opts.get("style", "block"))
+    with open(os.path.join(capdir, f"{name}.srt"), "w") as f:
+        f.write(to_srt(clip_cues))
+
+    W, H = 1080, 1920
+    ass_name = f"{name}.ass"
+    if opts.get("mode", "crop") == "blur":
+        fc = (f"[0:v]split=2[bg][fg];"
+              f"[bg]scale={W}:{H}:force_original_aspect_ratio=increase,"
+              f"crop={W}:{H},boxblur=28:3,eq=brightness=-0.06[bgb];"
+              f"[fg]scale={W}:-2:flags=lanczos[fgs];"
+              f"[bgb][fgs]overlay=(W-w)/2:(H-h)/2[fr];"
+              f"[fr]format=yuv420p,ass={ass_name}[v]")
+    else:
+        cx = float(opts.get("cx", 0.5))
+        fc = (f"[0:v]crop='min(iw,ih*9/16)':ih:'(iw-min(iw,ih*9/16))*{cx}':0,"
+              f"scale={W}:{H}:flags=lanczos,format=yuv420p,ass={ass_name}[v]")
+
+    cmd = [FFMPEG, "-y", "-v", "error",
+           "-ss", f"{st:.3f}", "-t", f"{dur:.3f}", "-i", video,
+           "-filter_complex", fc, "-map", "[v]", "-map", "0:a?",
+           "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+           "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+           "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", "30",
+           "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+           "-movflags", "+faststart", out_mp4]
+    r = subprocess.run(cmd, capture_output=True, cwd=capdir)
+    if r.returncode != 0:
+        print(f"[render:{name}] ffmpeg failed:\n{r.stderr.decode()[-1200:]}")
+        return False
+    return os.path.exists(out_mp4)
+
+
+def _retime_for_clip(all_cues: list, words: list | None, start: float,
+                     dur: float, rules: dict, opts: dict) -> list:
+    """Build the clip-relative caption list (start/end are seconds from 0).
+    Uses the *source* cues for the chosen style so the subtitle session starts
+    from exactly what will be rendered."""
+    style = opts.get("style", "block")
+    if style == "punch" and words:
+        kept = []
+        for w in words:
+            st = w.t - start
+            if -0.1 <= st < dur:
+                kept.append(Word(st, w.text))
+        return punch_cues(kept)
+    return retime_cues(all_cues, start, dur)
+
+
+def regenerate_clip_captions(job: dict, jobdir: str, name: str) -> list:
+    """Re-derive a clip's caption list from the master transcript (used when
+    the user changes style or trims a clip and wants fresh captions)."""
+    opts = job.get("options", {})
+    peak = next((p for p in job.get("peaks", []) if p.get("name") == name), None)
+    if not peak:
+        raise RuntimeError(f"No clip named {name}")
+    cues_path = os.path.join(jobdir, "cues.json")
+    words_path = os.path.join(jobdir, "words.json")
+    cues = json.load(open(cues_path)) if os.path.exists(cues_path) else []
+    words = ([Word(w["t"], w["text"]) for w in json.load(open(words_path))]
+             if os.path.exists(words_path) else None)
+    clip_cues = _retime_for_clip(cues, words, float(peak["start"]),
+                                 float(peak["end"] - peak["start"]), {}, opts)
+    cap_dir = os.path.join(jobdir, "caps")
+    os.makedirs(cap_dir, exist_ok=True)
+    open(os.path.join(cap_dir, f"{name}.json"), "w").write(
+        json.dumps(clip_cues, indent=1))
+    return clip_cues
 
 
 def _srt_to_words(srt_path: str) -> list:
