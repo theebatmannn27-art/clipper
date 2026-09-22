@@ -1,0 +1,20 @@
+[
+ {
+  "start": 8.37,
+  "end": 34.75,
+  "peak": 18.5,
+  "score": 1.2381,
+  "name": "clip01",
+  "title": "And it cost me a lot",
+  "hook": "The first thing you have to understand is that"
+ },
+ {
+  "start": 41.96,
+  "end": 68.25,
+  "peak": 52.0,
+  "score": 1.2228,
+  "name": "clip02",
+  "title": "This one",
+  "hook": "Next one"
+ }
+]

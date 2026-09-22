@@ -1,0 +1,17 @@
+HOW TO EXPORT YOUR YOUTUBE COOKIES (only for videos you own / have rights to)
+
+Chrome / Edge  ->  "Get cookies.txt LOCALLY" extension (open source, by kairi003)
+Firefox        ->  "cookies.txt" extension (by Lennon Hill)
+  * open youtube.com and confirm you are signed in
+  * click the extension -> Export -> saves cookies.txt
+  * send that file here
+
+Alternative (no extension), Firefox:
+  File > Edit > Settings > search "cookies" > Manage Data,
+  or use: yt-dlp --cookies-from-browser firefox --cookies cookies.txt
+
+Heads-up:
+  * cookies.txt grants account access - only send it if you are comfortable with
+    that. You can log out / rotate the session afterwards to invalidate it.
+  * YouTube still sometimes rejects datacenter IPs even with valid cookies; if it
+    does, the reliable path is uploading the video file itself.
