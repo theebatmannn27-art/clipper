@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clipper Studio — vertical clips from any video</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%237c5cff'/%3E%3Ctext x='50' y='68' font-size='56' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E✂%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0d12; --bg2:#11141c; --card:#161a24; --card2:#1c2130;
+  --line:#262c3b; --line2:#333b4f;
+  --text:#e7eaf2; --muted:#9aa3b5; --faint:#6b7385;
+  --accent:#7c5cff; --accent2:#a78bfa; --accent-ink:#0b0d12;
+  --ok:#30d987; --warn:#f6b83a; --err:#ff5d5d;
+  --grad:linear-gradient(120deg,#7c5cff 0%,#f36bb4 100%);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:radial-gradient(1200px 700px at 80% -10%, rgba(124,92,255,.14), transparent 60%),
+             radial-gradient(900px 600px at -10% 10%, rgba(243,107,180,.10), transparent 55%),
+             var(--bg);
+  color:var(--text);
+  font-family:'Inter',system-ui,-apple-system,sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent2);text-decoration:none}
+.hidden{display:none !important}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+/* ---------- header ---------- */
+header{display:flex;align-items:center;gap:14px;padding:26px 0 8px}
+.logo{width:40px;height:40px;border-radius:11px;background:var(--grad);
+  display:grid;place-items:center;font-weight:800;font-size:20px;color:#fff;
+  box-shadow:0 6px 24px rgba(124,92,255,.45)}
+header h1{font-size:20px;font-weight:800;letter-spacing:-.02em;margin:0}
+.tagline{color:var(--muted);font-size:14px}
+.pill{margin-left:auto;font-size:12px;color:var(--muted);background:var(--card);
+  border:1px solid var(--line);padding:5px 11px;border-radius:999px;white-space:nowrap}
+/* ---------- hero ---------- */
+.hero{margin:34px 0 22px}
+.hero h2{font-size:34px;letter-spacing:-.03em;line-height:1.1;margin:0 0 10px;font-weight:800}
+.hero h2 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);font-size:16px;margin:0;max-width:520px}
+/* ---------- tabs ---------- */
+.tabs{display:flex;gap:4px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:12px;padding:4px;margin:22px 0 14px;width:max-content}
+.tab{padding:8px 16px;border-radius:9px;font-size:14px;font-weight:600;color:var(--muted);
+  cursor:pointer;border:0;background:transparent}
+.tab.active{background:var(--card2);color:var(--text)}
+/* ---------- cards ---------- */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+  padding:20px;margin-bottom:16px}
+.card h3{font-size:14px;margin:0 0 12px;color:var(--text)}
+.drop{
+  border:1.5px dashed var(--line2);border-radius:14px;padding:34px 20px;text-align:center;
+  cursor:pointer;transition:.15s;color:var(--muted)
+}
+.drop:hover,.drop.over{border-color:var(--accent);color:var(--text);background:rgba(124,92,255,.05)}
+.drop .big{font-size:30px}
+.mini{font-size:13px;color:var(--muted);margin-top:16px;text-align:center}
+textarea,input[type=text],input[type=number],select{
+  width:100%;background:var(--bg2);border:1px solid var(--line2);color:var(--text);
+  border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;outline:none
+}
+textarea:focus,input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(124,92,255,.18)}
+textarea{resize:vertical;min-height:64px}
+label.lbl{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+.file-picked{display:none;align-items:center;gap:10px;margin-top:14px;background:var(--bg2);
+  border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.file-picked .name{font-size:13px;color:var(--text);word-break:break-all}
+.x{background:none;border:0;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 6px}
+/* ---------- options grid ---------- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid .full{grid-column:1/-1}
+.hint{font-size:12px;color:var(--faint);margin-top:6px}
+/* ---------- buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--grad);border:0;color:#fff;font-weight:700;font-size:15px;
+  padding:13px 22px;border-radius:12px;cursor:pointer;width:100%;
+  transition:.15s;font-family:inherit}
+.btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;filter:none;transform:none}
+.btn.ghost{background:var(--card2);border:1px solid var(--line2);color:var(--text)}
+.btn.sm{width:auto;padding:9px 16px;font-size:13.5px}
+.btn.danger{background:transparent;border:1px solid rgba(255,93,93,.4);color:var(--err)}
+/* ---------- spinner ---------- */
+.spinner{width:20px;height:20px;border:2.5px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner.dark{border-color:rgba(255,255,255,.25);border-top-color:#fff}
+/* ---------- progress ---------- */
+.progress-wrap{margin-top:20px}
+.prog-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin-bottom:8px}
+.bar{height:8px;background:var(--bg2);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;background:var(--grad);border-radius:99px;transition:width .4s ease}
+.stage-big{font-size:15px;font-weight:600;color:var(--text)}
+/* ---------- review board ---------- */
+.review-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:20px 0}
+.review-head h2{font-size:20px;margin:0;font-weight:800;letter-spacing:-.02em}
+.review-head .sub{color:var(--muted);font-size:13.5px;width:100%}
+.board{display:grid;gap:16px}
+.clip{display:grid;grid-template-columns:128px 1fr;gap:16px;background:var(--card);
+  border:1px solid var(--line);border-radius:16px;padding:16px;transition:.15s}
+.clip.off{opacity:.45}
+.clip .thumb{width:128px;height:227px;border-radius:10px;object-fit:cover;
+  background:var(--bg2);border:1px solid var(--line)}
+.clip .body{display:flex;flex-direction:column;gap:9px;min-width:0}
+.clip .row1{display:flex;align-items:center;gap:10px}
+.clip .name{font-weight:700;font-size:14px}
+.clip .score{font-size:12px;color:var(--faint);font-family:'JetBrains Mono',monospace}
+.clip input[type=text]{padding:9px 11px;font-size:13px}
+.switch{position:relative;width:40px;height:22px;margin-left:auto;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;inset:0;background:var(--bg2);
+  border:1px solid var(--line2);border-radius:99px;transition:.2s}
+.slider:before{content:"";position:absolute;height:14px;width:14px;left:3px;top:3px;
+  background:var(--muted);border-radius:50%;transition:.2s}
+.switch input:checked+.slider{background:var(--accent);border-color:var(--accent)}
+.switch input:checked+.slider:before{transform:translateX(18px);background:#fff}
+.timechip{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;
+  background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:3px 7px}
+.range{width:100%;accent-color:var(--accent)}
+.trim-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+/* ---------- downloads ---------- */
+.dl-grid{display:grid;gap:14px}
+.dl-item{display:flex;align-items:center;gap:14px;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.dl-item .ic{width:44px;height:44px;border-radius:10px;background:var(--bg2);
+  display:grid;place-items:center;font-size:20px}
+.dl-item .meta{min-width:0}
+.dl-item .meta .t{font-weight:700;font-size:14px;word-break:break-all}
+.dl-item .meta .s{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.dl-item .acts{margin-left:auto;display:flex;gap:8px;flex:none}
+/* ---------- toast ---------- */
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;
+  background:var(--card2);border:1px solid var(--line2);color:var(--text);
+  padding:11px 18px;border-radius:12px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.5);
+  opacity:0;pointer-events:none;transition:.25s;z-index:50;max-width:80vw}
+#toast.show{opacity:1}
+#toast.err{border-color:rgba(255,93,93,.5)}
+/* ---------- footer ---------- */
+footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;line-height:1.7}
+/* ---------- video modal ---------- */
+#modal{position:fixed;inset:0;background:rgba(5,6,10,.8);display:none;
+  place-items:center;z-index:40;padding:20px}
+#modal.open{display:grid}
+#modal video{max-width:min(420px,92vw);max-height:80vh;border-radius:16px;
+  box-shadow:0 24px 70px rgba(0,0,0,.6)}
+@media(max-width:560px){
+  .grid{grid-template-columns:1fr}
+  .clip{grid-template-columns:96px 1fr}
+  .clip .thumb{width:96px;height:171px}
+  .hero h2{font-size:27px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">✂</div>
+    <div>
+      <h1>Clipper Studio</h1>
+      <div class="tagline">long video → platform-ready vertical clips</div>
+    </div>
+    <div class="pill" id="capPill">checking…</div>
+  </header>
+
+  <!-- ============ NEW ============ -->
+  <section id="screen-new">
+    <div class="hero">
+      <h2>Turn any video into <span>scroll-stopping Shorts</span></h2>
+      <p>Paste a link or drop a file. We find the peak moments, caption them,
+         and cut 1080×1920 clips ready for Shorts, Reels &amp; TikTok.</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" id="tabUrl">🔗 From URL</button>
+      <button class="tab" id="tabFile">📤 Upload</button>
+    </div>
+
+    <div class="card" id="panelUrl">
+      <h3>Paste a video link</h3>
+      <input type="text" id="urlInput" placeholder="https://youtube.com/watch?v=…  or  a direct .mp4 link">
+      <div class="hint" id="urlHint">Paste a link to a YouTube video or a direct video file.</div>
+    </div>
+
+    <div class="card hidden" id="panelFile">
+      <h3>Upload a video file</h3>
+      <div class="drop" id="drop">
+        <div class="big">⬆️</div>
+        <div style="margin-top:6px;font-weight:600;color:var(--text)">Drop a video here</div>
+        <div style="font-size:12.5px;margin-top:2px">or click to browse — mp4 · webm · mkv · mov</div>
+      </div>
+      <input type="file" id="fileInput" accept="video/*,.mkv,.webm" class="hidden">
+      <div class="file-picked" id="filePicked">
+        <span>🎬</span><span class="name" id="fileName"></span>
+        <button class="x" id="fileClear">✕</button>
+      </div>
+      <label class="lbl">Subtitles (optional)</label>
+      <input type="file" id="vttInput" accept=".vtt,.srt">
+      <div class="hint">Auto-captions need a subtitle file (.vtt/.srt). Without one,
+        clips render without burned-in captions. YouTube links fetch their own.</div>
+    </div>
+
+    <div class="card">
+      <h3>Output settings</h3>
+      <div class="grid">
+        <div>
+          <label class="lbl">Clip length (seconds)</label>
+          <input type="number" id="optLen" value="40" min="10" max="90" step="1">
+        </div>
+        <div>
+          <label class="lbl">Number of clips</label>
+          <input type="number" id="optCount" value="5" min="1" max="12" step="1">
+        </div>
+        <div>
+          <label class="lbl">Caption style</label>
+          <select id="optStyle">
+            <option value="block">Block — phrase at a time</option>
+            <option value="punch">Punch — 1–3 big words</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Framing</label>
+          <select id="optMode">
+            <option value="crop">Crop (fill frame)</option>
+            <option value="blur">Blur backdrop (letterbox)</option>
+          </select>
+        </div>
+        <div class="full">
+          <label class="lbl">Crop centre <span style="color:var(--faint);font-weight:500">— where the speaker sits</span></label>
+          <input type="range" id="optCx" min="0.2" max="0.8" step="0.05" value="0.5">
+          <div class="hint" id="cxLabel">centre (0.5)</div>
+        </div>
+        <div>
+          <label class="lbl">Brand / watermark</label>
+          <input type="text" id="optBrand" placeholder="@yourhandle">
+        </div>
+        <div>
+          <label class="lbl">Burn hook title</label>
+          <select id="optHook">
+            <option value="1">On</option>
+            <option value="0">Off</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn" id="goBtn"><span>✨</span> Find the moments</button>
+    <div class="progress-wrap hidden" id="progressWrap">
+      <div class="prog-row"><span class="stage-big" id="stageText">Working…</span>
+        <span id="pctText">0%</span></div>
+      <div class="bar"><div id="barFill" style="width:0%"></div></div>
+    </div>
+    <p class="mini" id="noteArea"></p>
+  </section>
+
+  <!-- ============ REVIEW ============ -->
+  <section id="screen-review" class="hidden">
+    <div class="review-head">
+      <button class="btn ghost sm" id="backBtn">← New video</button>
+      <h2 id="reviewTitle">Review your clips</h2>
+      <div class="sub" id="reviewSub"></div>
+    </div>
+    <div id="renderBanner" class="hidden"></div>
+    <div class="board" id="board"></div>
+    <div style="display:flex;gap:12px;margin-top:22px">
+      <button class="btn ghost" id="reanalyzeBtn">↺ Re-detect with new settings</button>
+      <button class="btn" id="renderBtn">🎬 Render N clips</button>
+    </div>
+    <div class="progress-wrap hidden" id="renderProgressWrap">
+      <div class="prog-row"><span class="stage-big" id="renderStage">Rendering…</span>
+        <span id="renderPct">0%</span></div>
+      <div class="bar"><div id="renderBarFill" style="width:0%"></div></div>
+    </div>
+  </section>
+
+  <!-- ============ DONE ============ -->
+  <section id="screen-done" class="hidden">
+    <div class="review-head">
+      <button class="btn ghost sm" id="backBtn2">← New video</button>
+      <h2>🎉 Your clips are ready</h2>
+      <div class="sub">Loudness-normalised to −14 LUFS, 1080×1920, captions burned in. Upload straight to Shorts / Reels / TikTok.</div>
+    </div>
+    <div class="dl-grid" id="dlGrid"></div>
+    <div style="display:flex;gap:12px;margin-top:22px;flex-wrap:wrap">
+      <button class="btn ghost" id="editBtn">← Back to editing</button>
+      <a class="btn ghost sm" id="zipBtn" href="#" download>⬇ Download all (.zip)</a>
+      <button class="btn" id="newBtn">✨ Clip another video</button>
+    </div>
+  </section>
+
+  <footer>
+    Built on the <code>clipper</code> pipeline — peak detection + libass captions + ffmpeg.<br>
+    Only clip material you have the rights to: your own uploads, channels granting
+    reuse, or Creative Commons.
+  </footer>
+</div>
+
+<div id="toast"></div>
+<div id="modal"><video id="modalVideo" controls playsinline></video></div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const fmtTime = s => {
+  if (s==null || isNaN(s)) return "–:––";
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${m}:${String(sec).padStart(2,"0")}`;
+};
+const fmtSize = b => {
+  if (b==null) return "";
+  if (b>1e6) return (b/1e6).toFixed(1)+" MB";
+  if (b>1e3) return (b/1e3).toFixed(0)+" KB";
+  return b+" B";
+};
+let toastTimer;
+function toast(msg, err=false){
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "show" + (err ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.className="", 3200);
+}
+
+const state = { mode:"url", file:null, vttFile:null, meta:null, job:null, poll:null };
+
+/* ---------- capability pill ---------- */
+async function loadMeta(){
+  const r = await fetch("/api/meta").catch(()=>null);
+  state.meta = r ? await r.json() : {};
+  const p = $("capPill"), h = $("urlHint");
+  const m = state.meta;
+  if (m && m.youtube_ready){
+    p.textContent = "● YouTube ready";
+    p.style.color = "var(--ok)";
+  } else if (m && m.ytdlp){
+    p.textContent = "● direct links work · YouTube needs cookies";
+    p.style.borderColor = "rgba(246,184,58,.5)";
+    h.textContent = "YouTube links work when yt-dlp has a cookies config; direct .mp4/.webm links always work. Uploading a file is the most reliable path here.";
+  } else {
+    p.textContent = "● uploads + direct links";
+    h.textContent = "Paste a direct video link, or upload a file — both always work.";
+  }
+}
+
+/* ---------- tabs ---------- */
+function setTab(which){
+  state.mode = which;
+  $("tabUrl").classList.toggle("active", which==="url");
+  $("tabFile").classList.toggle("active", which==="file");
+  $("panelUrl").classList.toggle("hidden", which!=="url");
+  $("panelFile").classList.toggle("hidden", which!=="file");
+}
+$("tabUrl").onclick = ()=>setTab("url");
+$("tabFile").onclick = ()=>setTab("file");
+
+/* ---------- upload ---------- */
+const drop=$("drop"), fi=$("fileInput");
+drop.onclick = ()=>fi.click();
+["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev, e=>{e.preventDefault();drop.classList.remove("over");}));
+drop.addEventListener("drop", e=>{
+  const f = e.dataTransfer.files[0];
+  if(f){ state.file=f; showPicked(f); }
+});
+fi.onchange = ()=>{ if(fi.files[0]){ state.file=fi.files[0]; showPicked(fi.files[0]); } };
+$("vttInput").onchange = ()=>{ state.vttFile = $("vttInput").files[0] || null; };
+$("fileClear").onclick = ()=>{ state.file=null; fi.value=""; $("filePicked").style.display="none"; };
+function showPicked(f){ $("fileName").textContent = f.name; $("filePicked").style.display="flex"; }
+
+/* ---------- cx label ---------- */
+$("optCx").oninput = e=>{
+  const v = parseFloat(e.target.value);
+  const txt = v<0.45 ? "left-ish" : v>0.55 ? "right-ish" : "centre";
+  $("cxLabel").textContent = `${txt} (${v.toFixed(2)})`;
+};
+
+/* ---------- submit ---------- */
+function readOptions(){
+  return {
+    len: parseFloat($("optLen").value)||40,
+    count: parseInt($("optCount").value)||5,
+    style: $("optStyle").value,
+    mode: $("optMode").value,
+    hook: $("optHook").value==="1",
+    brand: $("optBrand").value.trim(),
+    cx: parseFloat($("optCx").value)||0.5,
+  };
+}
+$("goBtn").onclick = async ()=>{
+  const url = $("urlInput").value.trim();
+  if (state.mode==="url" && !url){ toast("Paste a link first", true); return; }
+  if (state.mode==="file" && !state.file){ toast("Choose a file first", true); return; }
+
+  const fd = new FormData();
+  const o = readOptions();
+  if (state.mode==="url") fd.append("url", url);
+  if (state.file) fd.append("file", state.file);
+  if (state.vttFile) fd.append("vtt_file", state.vttFile);
+  fd.append("len_sec", o.len); fd.append("count", o.count);
+  fd.append("style", o.style); fd.append("mode", o.mode);
+  fd.append("hook", o.hook?"true":"false"); fd.append("brand", o.brand);
+  fd.append("cx", o.cx);
+
+  $("goBtn").disabled = true;
+  $("progressWrap").classList.remove("hidden");
+  $("noteArea").textContent = "";
+  setStage("Uploading & starting…", 0.03);
+  try{
+    const r = await fetch("/api/jobs", {method:"POST", body:fd});
+    if(!r.ok){
+      const t = await r.text();
+      throw new Error("server said: " + (r.status) + (t ? " — "+t.slice(0,160) : ""));
+    }
+    const job = await r.json();
+    state.job = job;
+    watchJob(job.id);
+  }catch(e){
+    toast(e.message || "Failed to start", true);
+    $("goBtn").disabled = false;
+    $("progressWrap").classList.add("hidden");
+  }
+};
+function setStage(text, pct){
+  $("stageText").textContent = text;
+  $("pctText").textContent = Math.round((pct||0)*100)+"%";
+  $("barFill").style.width = Math.round((pct||0)*100)+"%";
+}
+function watchJob(id){
+  clearInterval(state.poll);
+  state.poll = setInterval(async ()=>{
+    try{
+      const r = await fetch("/api/jobs/"+id);
+      const j = await r.json();
+      state.job = j;
+      setStage(j.stage || "Working…", j.progress||0);
+      if (j.state==="review"){ enterReview(j); }
+      else if (j.state==="failed"){ fail(j); }
+      else if (j.state==="done"){ enterDone(j); }
+    }catch(e){}
+  }, 1200);
+}
+function fail(j){
+  clearInterval(state.poll);
+  $("goBtn").disabled = false;
+  $("progressWrap").classList.add("hidden");
+  toast(j.error || "Something went wrong", true);
+  $("noteArea").innerHTML = '⚠️ <b>'+(j.error||"Failed")+'</b><br>'+
+    '<span style="color:var(--faint)">Tip: try uploading the video file directly — that path always works. YouTube links are often bot-blocked from the cloud IP running this demo.</span>';
+}
+function enterReview(j){
+  clearInterval(state.poll);
+  $("goBtn").disabled = false;
+  $("progressWrap").classList.add("hidden");
+  $("screen-new").classList.add("hidden");
+  $("screen-review").classList.remove("hidden");
+  $("screen-done").classList.add("hidden");
+  $("reviewTitle").textContent = j.source_url ? "Review your clips" : "Review your clips";
+  $("reviewSub").textContent = j.source_filename || j.source_url || "";
+  renderBoard(j);
+}
+function renderBoard(j){
+  const board = $("board");
+  board.innerHTML = "";
+  if (!j.peaks || !j.peaks.length){
+    board.innerHTML = '<div class="card">No peaks found in this video. Try a different clip length or source.</div>';
+    return;
+  }
+  j.peaks.forEach((p,i)=>{
+    const el = document.createElement("div");
+    el.className = "clip" + (p.selected===false ? " off":"");
+    const t0 = p.title||"", h0 = p.hook||"";
+    el.innerHTML = `
+      <img class="thumb" src="${p.thumb}" alt="">
+      <div class="body">
+        <div class="row1">
+          <span class="name">${p.name}</span>
+          <span class="timechip">${fmtTime(p.start)} – ${fmtTime(p.end)}</span>
+          <span class="score">peak ${p.score!=null?p.score.toFixed(2):"–"}</span>
+          <label class="switch" title="include this clip">
+            <input type="checkbox" class="sel" ${p.selected!==false?"checked":""}>
+            <span class="slider"></span>
+          </label>
+        </div>
+        <input type="text" class="hook" value="${h0.replace(/"/g,"&quot;")}" placeholder="Hook line (burned at the top)">
+        <input type="text" class="title" value="${t0.replace(/"/g,"&quot;")}" placeholder="Title / description">
+        <div class="trim-row">
+          <div>
+            <input type="number" class="start" value="${p.start}" step="0.5" min="0">
+          </div>
+          <div>
+            <input type="number" class="end" value="${p.end}" step="0.5" min="0">
+          </div>
+        </div>
+      </div>`;
+    el.querySelector(".sel").onchange = e=>{
+      p.selected = e.target.checked;
+      el.classList.toggle("off", !p.selected);
+      syncRenderBtn();
+    };
+    el.querySelector(".hook").oninput = e=>{ p.hook = e.target.value; };
+    el.querySelector(".title").oninput = e=>{ p.title = e.target.value; };
+    el.querySelector(".start").onchange = e=>{ p.start = parseFloat(e.target.value)||0; };
+    el.querySelector(".end").onchange = e=>{ p.end = parseFloat(e.target.value)||0; };
+    el.querySelector(".thumb").onclick = ()=>previewThumb(p);
+    board.appendChild(el);
+  });
+  syncRenderBtn();
+}
+function syncRenderBtn(){
+  const j = state.job; if(!j) return;
+  const n = j.peaks.filter(p=>p.selected!==false).length;
+  $("renderBtn").textContent = "🎬 Render " + n + " clip" + (n===1?"":"s");
+}
+async function saveEdits(){
+  const j = state.job; if(!j) return;
+  await fetch("/api/jobs/"+j.id, {method:"PATCH",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({peaks: j.peaks})}).catch(()=>{});
+}
+function previewThumb(p){
+  // show a fresh frame ~at the clip start using a hidden endpoint-less trick:
+  // we simply point the modal at the thumbnail for now; full previews come
+  // after rendering.
+  const m = $("modal"), v = $("modalVideo");
+  v.src = p.thumb; m.classList.add("open");
+}
+$("modal").onclick = e=>{ if(e.target.id==="modal"){ $("modalVideo").pause(); $("modal").classList.remove("open"); } };
+
+/* ---------- render ---------- */
+$("renderBtn").onclick = async ()=>{
+  const j = state.job; if(!j) return;
+  if (!j.peaks.filter(p=>p.selected!==false).length){ toast("Select at least one clip", true); return; }
+  const opts = readOptions();
+  $("renderProgressWrap").classList.remove("hidden");
+  $("renderBtn").disabled = true;
+  await saveEdits();
+  try{
+    const r = await fetch("/api/jobs/"+j.id+"/render", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({peaks: j.peaks, options: opts})
+    });
+    const jj = await r.json();
+    state.job = jj;
+    watchRender(j.id);
+  }catch(e){ toast("Render failed to start", true); }
+};
+function watchRender(id){
+  clearInterval(state.poll);
+  state.poll = setInterval(async ()=>{
+    try{
+      const j = await (await fetch("/api/jobs/"+id)).json();
+      if (j.state==="rendering"){
+        $("renderStage").textContent = j.stage || "Rendering…";
+        $("renderPct").textContent = Math.round((j.progress||0)*100)+"%";
+        $("renderBarFill").style.width = Math.round((j.progress||0)*100)+"%";
+      } else if (j.state==="done"){
+        enterDone(j);
+      } else if (j.state==="review"){
+        // render failed -> back to review with error
+        clearInterval(state.poll);
+        $("renderProgressWrap").classList.add("hidden");
+        $("renderBtn").disabled = false;
+        toast(j.render_error || j.error || "Render failed", true);
+      }
+    }catch(e){}
+  }, 1000);
+}
+function enterDone(j){
+  clearInterval(state.poll);
+  state.job = j;
+  $("screen-new").classList.add("hidden");
+  $("screen-review").classList.add("hidden");
+  $("screen-done").classList.remove("hidden");
+  $("zipBtn").href = `/api/jobs/${j.id}/zip`;
+  const g = $("dlGrid"); g.innerHTML = "";
+  (j.clips||[]).forEach((c,i)=>{
+    const el = document.createElement("div");
+    el.className = "dl-item";
+    el.innerHTML = `
+      <div class="ic">🎬</div>
+      <div class="meta">
+        <div class="t">${c.name}.mp4</div>
+        <div class="s">${fmtTime(c.start)}–${fmtTime(c.end)} · ${fmtSize(c.size)} · ${c.hook||""}</div>
+      </div>
+      <div class="acts">
+        <button class="btn ghost sm play" data-u="${c.url}">▶ Preview</button>
+        <a class="btn sm" href="${c.url}" download>⬇ Download</a>
+        ${c.caption_url?`<a class="btn ghost sm" href="${c.caption_url}" download>.srt</a>`:""}
+      </div>`;
+    el.querySelector(".play").onclick = ()=>{
+      const m=$("modal"), v=$("modalVideo");
+      v.src = c.url; m.classList.add("open"); v.play().catch(()=>{});
+    };
+    g.appendChild(el);
+  });
+}
+$("editBtn").onclick = ()=>{
+  $("screen-done").classList.add("hidden");
+  $("screen-review").classList.remove("hidden");
+  $("renderProgressWrap").classList.add("hidden");
+  $("renderBtn").disabled = false;
+};
+$("backBtn").onclick = $("backBtn2").onclick = $("newBtn").onclick = ()=>{
+  clearInterval(state.poll);
+  state.job = null;
+  $("screen-review").classList.add("hidden");
+  $("screen-done").classList.add("hidden");
+  $("screen-new").classList.remove("hidden");
+  window.scrollTo(0,0);
+};
+$("reanalyzeBtn").onclick = ()=>{
+  $("goBtn").disabled = false;
+  $("backBtn").click();
+  toast("Adjust the settings above and hit “Find the moments” again");
+};
+
+loadMeta();
+</script>
+</body>
+</html>

@@ -14,14 +14,10 @@ from __future__ import annotations
 import argparse, json, os, shutil, subprocess, sys
 import numpy as np
 
-def _ffmpeg() -> str:
-    """$FFMPEG, else wherever ffmpeg lives on PATH, else ./ffmpeg."""
-    return (os.environ.get("FFMPEG")
-            or shutil.which("ffmpeg")
-            or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "ffmpeg")))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ffmpeg_path import get_ffmpeg  # noqa: E402
 
-
-FFMPEG = _ffmpeg()
+FFMPEG = get_ffmpeg()
 SR = 16000
 
 
@@ -81,23 +77,14 @@ def scene_density(times: list[float], hop_s: float, n: int) -> np.ndarray:
     return d / (d.max() + 1e-9) if d.max() > 0 else d
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("video")
-    ap.add_argument("--subs", default=None, help="cues.json from vttparse.py")
-    ap.add_argument("--scenes", default=None, help="file of scene-cut times, one per line")
-    ap.add_argument("--len", type=float, default=45.0, help="clip length in seconds")
-    ap.add_argument("--min-len", type=float, default=25.0)
-    ap.add_argument("--count", type=int, default=6)
-    ap.add_argument("--gap", type=float, default=20.0, help="min gap between clip starts")
-    ap.add_argument("--json-out", default="peaks.json")
-    a = ap.parse_args()
-
-    x = load_audio(a.video)
+def find_peaks(video: str, subs: str | None, scenes: str | None,
+               length: float = 45.0, min_len: float = 25.0, count: int = 6,
+               gap: float = 20.0) -> tuple[list[dict], float]:
+    """Return (candidates, video_duration_seconds)."""
+    x = load_audio(video)
     dur = len(x) / SR
     rms_db, hop = envelope(x)
     n = len(rms_db)
-    t = np.arange(n) * hop
 
     # 1) relative loudness spike: smooth 0.75 s, subtract 30 s rolling median
     lvl = smooth(rms_db, int(0.75 / hop))
@@ -107,18 +94,18 @@ def main() -> None:
     spike = smooth(spike, int(1.5 / hop))
     spike_n = spike / (np.percentile(spike, 99) + 1e-9)
 
-    cues = json.load(open(a.subs)) if a.subs and os.path.exists(a.subs) else []
+    cues = json.load(open(subs)) if subs and os.path.exists(subs) else []
     sd = speech_density(cues, hop, n)
 
     sc = np.zeros(n, dtype=np.float32)
-    if a.scenes and os.path.exists(a.scenes):
-        times = [float(l.split()[0]) for l in open(a.scenes) if l.strip()]
+    if scenes and os.path.exists(scenes):
+        times = [float(l.split()[0]) for l in open(scenes) if l.strip()]
         sc = scene_density(times, hop, n)
 
     score = 1.0 * spike_n + 0.45 * sd + 0.35 * sc
 
-    L = int(a.len / hop)
-    minL = int(a.min_len / hop)
+    L = int(length / hop)
+    minL = int(min_len / hop)
     if n <= minL:
         cands = [{"start": 0.0, "end": round(dur, 2), "score": 1.0, "peak": 0.0}]
     else:
@@ -132,14 +119,14 @@ def main() -> None:
         if len(idx) == 0:
             idx = np.array([int(n / 2)])
 
-        min_sep = max(a.gap, 0.75 * a.len)
+        min_sep = max(gap, 0.75 * length)
         order = idx[np.argsort(s[idx])[::-1]]
         chosen: list[float] = []
         for i in order:
             t_peak = float(i) * hop
             if all(abs(t_peak - c) >= min_sep for c in chosen):
                 chosen.append(t_peak)
-            if len(chosen) >= a.count:
+            if len(chosen) >= count:
                 break
         if not chosen:
             chosen = [float(np.argmax(s)) * hop]
@@ -147,9 +134,9 @@ def main() -> None:
         cands = []
         for t_peak in sorted(chosen):
             # land the spike ~1/3 in: payoff early, but a little run-up first
-            start = min(max(0.0, t_peak - 0.35 * a.len), max(0.0, dur - a.len))
-            start = min(start, max(0.0, dur - min(a.len, dur)))
-            end = min(dur, start + a.len)
+            start = min(max(0.0, t_peak - 0.35 * length), max(0.0, dur - length))
+            start = min(start, max(0.0, dur - min(length, dur)))
+            end = min(dur, start + length)
             wi = slice(int(start / hop), min(n, int(end / hop)))
             cands.append({"start": round(start, 2), "end": round(end, 2),
                           "peak": round(t_peak, 2),
@@ -164,7 +151,7 @@ def main() -> None:
             if abs(starts[i] - c["start"]) <= 2.0:
                 c["start"] = round(max(0.0, float(starts[i]) - 0.25), 2)
             j = int(np.argmin(np.abs(ends - c["end"])))
-            if abs(ends[j] - c["end"]) <= 2.5 and ends[j] > c["start"] + a.min_len:
+            if abs(ends[j] - c["end"]) <= 2.5 and ends[j] > c["start"] + min_len:
                 c["end"] = round(float(ends[j]) + 0.35, 2)
 
     # label each clip from the transcript. Hand-edit these in the JSON before
@@ -178,6 +165,23 @@ def main() -> None:
                 pk = min(inside, key=lambda q: abs(q["start"] - c.get("peak", c["start"])))
                 c["hook"] = _short(pk["text"])
 
+    return cands, dur
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("video")
+    ap.add_argument("--subs", default=None, help="cues.json from vttparse.py")
+    ap.add_argument("--scenes", default=None, help="file of scene-cut times, one per line")
+    ap.add_argument("--len", type=float, default=45.0, help="clip length in seconds")
+    ap.add_argument("--min-len", type=float, default=25.0)
+    ap.add_argument("--count", type=int, default=6)
+    ap.add_argument("--gap", type=float, default=20.0, help="min gap between clip starts")
+    ap.add_argument("--json-out", default="peaks.json")
+    a = ap.parse_args()
+
+    cands, dur = find_peaks(a.video, a.subs, a.scenes,
+                            a.len, a.min_len, a.count, a.gap)
     json.dump(cands, open(a.json_out, "w"), indent=1)
     print(f"[peaks] duration {dur/60:.1f} min | {len(cands)} clips -> {a.json_out}")
     for c in cands:

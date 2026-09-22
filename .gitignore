@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Web app runtime data (jobs, uploads, renders) — never commit these.
+data/
+*.db
+*.sqlite3
+.env
+
+# CLI scratch output
+in/
+out/
+work/

@@ -18,10 +18,10 @@ import argparse, json, os, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vttparse import to_srt, retime_cues, retime_words, Word  # noqa: E402
 from assgen import build_ass, punch_cues                        # noqa: E402
+from ffmpeg_path import get_ffmpeg                              # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FFMPEG = (os.environ.get("FFMPEG") or shutil.which("ffmpeg")
-          or os.path.abspath(os.path.join(HERE, "..", "..", "ffmpeg")))
+FFMPEG = get_ffmpeg()
 
 
 def build_filter(mode: str, cx: float, ass_name: str | None) -> str:

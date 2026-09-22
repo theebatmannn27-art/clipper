@@ -1,9 +1,49 @@
-# YouTube → Vertical Shorts clipper
+# Clipper Studio — vertical clips from any video
 
-Finds the **peak moments** in a long video and cuts them into 9:16 captioned
+Two ways to use the same pipeline:
+
+- **Web app** (new): paste a link or upload a file → review & edit the detected
+  peak moments in the browser → render & download 9:16 captioned clips.
+- **CLI** (original): one-command `./run.sh` pipeline.
+
+It finds the **peak moments** in a long video and cuts them into 9:16 captioned
 clips ready for Shorts / Reels / TikTok.
 
-## Use
+## Web app
+
+```bash
+./serve.sh            # installs .venv on first run, serves on http://localhost:8080
+PORT=9000 ./serve.sh  # change the port
+```
+
+The app:
+
+1. **Source** — paste a direct video link *or* upload a file (mp4/webm/mkv/mov),
+   optionally with a `.vtt`/`.srt` subtitle file for burned-in captions.
+2. **Detect** — it runs the same `py/` pipeline underneath (subtitle parse →
+   loudness/speech-density peak detection) with live progress.
+3. **Review** — a board of the top moments with auto-generated thumbnails.
+   Edit each clip's **hook** and **title**, trim the start/end, and toggle
+   clips on/off.
+4. **Render** — 1080×1920, captions burned in, loudness normalised to −14 LUFS,
+   then download clips individually or as one `.zip`, and preview them in the
+   browser.
+
+Stack: FastAPI + a single-file vanilla-JS frontend in `web/` + a small worker
+that reuses `py/` directly. Job state lives in `data/` (gitignored). No accounts
+or billing yet — the endpoints (`/api/jobs`, `/api/jobs/{id}/render`, …) are
+shaped so auth/tenancy can be layered on without changing the UI contract.
+
+### YouTube links
+
+The downloader keeps the original tool's stance: **unauthenticated YouTube
+downloads are not enabled out of the box** (YouTube bot-blocks anonymous
+datacenter IPs). When `yt-dlp` is installed *and* you provide your own
+[`yt-dlp` cookies config](https://github.com/yt-dlp/yt-dlp#configuration)
+(`~/.config/yt-dlp/config` with `--cookies /path/to/cookies.txt`), YouTube URLs
+work. Direct `.mp4`/`.webm` links and file uploads always work.
+
+## CLI (original)
 
 ```bash
 ./setup.sh                                    # once per session (~5s)
@@ -68,13 +108,20 @@ python3 py/cut.py video.mp4 --peaks work/peaks.json --cues work/cues.json \
 
 | file | role |
 |---|---|
-| `run.sh` | one-command pipeline (fetch → parse subs → detect peaks → cut) |
-| `setup.sh` | installs ffmpeg + yt-dlp if missing |
+| `serve.sh` | starts the web app (creates `.venv`, runs FastAPI on `:8080`) |
+| `app/main.py` | FastAPI API — jobs, review/patch, render, clip downloads |
+| `app/worker.py` | job pipeline & render step (reuses `py/` for everything) |
+| `app/store.py` | JSON-backed job store (`data/state.json`) |
+| `app/dl.py` | downloader: yt-dlp (w/ user config) → plain HTTP fallback |
+| `web/index.html` | the whole frontend (no build step) |
+| `run.sh` | CLI one-command pipeline (fetch → parse subs → detect peaks → cut) |
+| `setup.sh` | installs ffmpeg + yt-dlp if missing (CLI) |
 | `fetch.sh` | yt-dlp wrapper (video, subtitles, thumbnail, metadata; optional cookies) |
 | `py/vttparse.py` | YouTube VTT → clean cues + per-word timings (handles rolling auto-subs) |
-| `py/peaks.py` | peak-moment detection |
+| `py/peaks.py` | peak-moment detection (also importable: `find_peaks()`) |
 | `py/cut.py` | 9:16 rendering, captions, hook/branding, loudness normalisation |
 | `py/assgen.py` | generates the styled ASS captions |
+| `py/ffmpeg_path.py` | shared ffmpeg resolver (PATH → static imageio-ffmpeg build) |
 | `demo/` | sample output clips from the test fixture |
 
 ## Output specs
