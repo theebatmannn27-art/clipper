@@ -179,6 +179,29 @@ def jobs():
     return store.list_jobs()
 
 
+@app.get("/api/history")
+def history():
+    """Home-screen card list — recent jobs, newest first, caps at 12."""
+    out = []
+    for j in store.list_jobs()[:12]:
+        clips = j.get("clips") or []
+        n_clips = len(clips) if j.get("state") == "done" else \
+            len([p for p in j.get("peaks", []) if p.get("selected", True)])
+        out.append({
+            "id": j["id"],
+            "state": j.get("state"),
+            "label": (j.get("source_filename") or j.get("source_url") or
+                      "Untitled video"),
+            "clips": n_clips,
+            "duration": j.get("duration"),
+            "captions": bool(j.get("captions")),
+            "brand": (j.get("options") or {}).get("brand", ""),
+            "thumb": (j.get("peaks") or [{}])[0].get("thumb"),
+            "created_at": j.get("created_at"),
+        })
+    return out
+
+
 @app.get("/api/jobs/{job_id}")
 def job(job_id: str):
     j = store.get_job(job_id)
@@ -405,6 +428,77 @@ def caption(job_id: str, name: str):
     if not os.path.exists(path):
         raise HTTPException(404, "Caption file not found")
     return FileResponse(path, media_type="text/plain")
+
+
+@app.post("/api/jobs/{job_id}/preview/{name}")
+def make_preview(job_id: str, name: str, body: dict | None = None):
+    """Render a quick low-res playable preview of one clip with its current
+    captions/hook burned in. Returns the URL to poll, then play."""
+    j = store.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "Job not found")
+    req_cues = (body or {}).get("cues")
+    jobdir = store.job_dir(job_id)
+    out = os.path.join(jobdir, "previews", name + ".mp4")
+
+    def _build() -> None:
+        try:
+            peak = next((p for p in j.get("peaks", []) if p.get("name") == name), None)
+            if not peak:
+                return
+            cues = list(req_cues) if req_cues is not None else None
+            if cues is None:
+                cap_file = os.path.join(jobdir, "caps", name + ".json")
+                cues = json.load(open(cap_file)) if os.path.exists(cap_file) else []
+            if os.path.exists(out):
+                os.remove(out)  # drop stale preview while rebuilding
+            worker.render_preview(j, jobdir, name, cues)
+        except Exception as e:
+            print(f"[preview:{name}] failed: {e}")
+
+    _executor.submit(_build)
+    return {"url": f"/api/jobs/{job_id}/previews/{name}.mp4", "building": True}
+
+
+@app.get("/api/jobs/{job_id}/previews/{name}")
+def get_preview(job_id: str, name: str):
+    base = os.path.basename(name)
+    if base.lower().endswith(".mp4"):
+        base = base[:-4]
+    path = os.path.join(store.job_dir(job_id), "previews", base + ".mp4")
+    if not os.path.exists(path):
+        raise HTTPException(404, "Preview still building")
+    return FileResponse(path, media_type="video/mp4",
+                        headers={"Cache-Control": "no-store"})
+
+
+@app.get("/api/jobs/{job_id}/hashtags/{name}")
+def hashtags(job_id: str, name: str):
+    """Generate a ready-to-paste upload kit (title + hook + hashtags)."""
+    j = store.get_job(job_id)
+    if not j:
+        raise HTTPException(404, "Job not found")
+    peak = next((p for p in j.get("peaks", []) if p.get("name") == name), None)
+    if not peak:
+        raise HTTPException(404, "Clip not found")
+    hook = (peak.get("hook") or "").strip()
+    text = hook or " ".join(peak.get("title", "").split())
+    words = [w.strip("#$&+\\/@%^*=,;:!?.") for w in text.lower().split()]
+    stop = {"the", "a", "an", "and", "or", "of", "to", "in", "on", "for",
+            "with", "this", "that", "your", "you", "is", "it", "i", "was",
+            "were", "are", "be", "at", "by", "how", "why", "when"}
+    words = [w for w in words if w and w not in stop][:4]
+    tags = ["#shorts", "#reels", "#viral"]
+    tags += [f"#{w}" for w in words if w.isalnum()]
+    tags = list(dict.fromkeys(tags))[:7]
+    brand = (j.get("options") or {}).get("brand", "").strip()
+    tagline = " ".join(tags)
+    title = hook or peak.get("title", "").strip()
+    copy_text = (title + "\n\n" + tagline +
+                 ("\n" + brand if brand else "")).strip()
+    return {"title": title, "hashtags": tagline, "copy_text": copy_text,
+            "brand": brand}
+
 
 
 @app.get("/api/jobs/{job_id}/zip")

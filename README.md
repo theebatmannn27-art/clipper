@@ -33,6 +33,16 @@ The app is a guided, four-session editor flow:
    burned in, loudness normalised to −14 LUFS; preview in-browser and download
    clips individually or as one `.zip`.
 
+Extras on top of the flow:
+
+- **Watch preview** — a quick low-res render of any scene with current captions
+  and hook burned in, playable right in the editor and subtitle screens.
+- **Upload kit** — one click copies "hook + hashtags (+ brand)" to the clipboard
+  per clip, ready to paste into Shorts / Reels / TikTok.
+- **Title Case** — one click re-capitalises an auto-generated transcript's
+  lowercase captions.
+- **Recent projects** — the home screen lists past jobs; reopen or re-download.
+
 Stack: FastAPI + a single-file vanilla-JS frontend in `web/` + a small worker
 that reuses `py/` directly. Job state lives in `data/` (gitignored). No accounts
 or billing yet — the endpoints (`/api/jobs`, `/api/jobs/{id}/render`, …) are
@@ -135,7 +145,9 @@ python3 py/cut.py video.mp4 --peaks work/peaks.json --cues work/cues.json \
 `PATCH /api/jobs/{id}` (edit `peaks` or `options`) · `POST …/clips-new` (add a
 custom section) · `GET/PUT /api/jobs/{id}/caps/{name}` + `POST …/regenerate`
 (per-clip captions) · `POST /api/jobs/{id}/render` · `GET …/clips/{name}.mp4`,
-`…/caps`, `…/thumbs`, `…/zip`.
+`…/caps`, `…/thumbs`, `…/zip` · `GET /api/history` · `POST …/preview/{name}` +
+`GET …/previews/{name}.mp4` (fast burnt-in preview) · `GET …/hashtags/{name}`
+(upload kit).
 
 ## Output specs
 

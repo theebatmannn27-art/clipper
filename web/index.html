@@ -302,6 +302,12 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
       <div class="bar"><div id="barFill" style="width:0%"></div></div>
     </div>
     <p class="mini" id="noteArea"></p>
+
+    <div id="historyWrap" class="hidden">
+      <div class="review-head"><div><h2>Recent projects</h2>
+        <div class="sub">Pick up where you left off.</div></div></div>
+      <div id="historyGrid" class="dl-grid"></div>
+    </div>
   </section>
 
   <!-- ============ STEP 2 — EDITOR (cut / trim scenes) ============ -->
@@ -331,7 +337,11 @@ footer{color:var(--faint);font-size:12.5px;text-align:center;margin-top:40px;lin
         cues; the preview shows exactly how it'll look. No transcript? Add cues by hand.</div></div>
     </div>
     <div class="banner info hidden" id="capsBanner"></div>
-    <div class="cap-clips" id="capClips"></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <div class="cap-clips" id="capClips" style="margin-bottom:0"></div>
+      <button class="btn ghost sm" id="titlecaseBtn" style="margin-left:auto">Title Case</button>
+      <button class="btn ghost sm" id="watchCapBtn">▶ Watch this clip</button>
+    </div>
     <div class="card" style="display:grid;grid-template-columns:1fr 200px;gap:16px" id="capLayout">
       <div class="cap-edit">
         <div id="capList"></div>
@@ -521,6 +531,8 @@ function renderEditor(){
         <span class="val">${fmt(p.end)}</span>
       </div>
       <div class="row-actions">
+        <button class="btn ghost sm watch" title="watch this segment (quick preview)">▶ Watch</button>
+        <button class="btn ghost sm kit" title="copy title + hashtags">📋 Upload kit</button>
         <button class="btn ghost sm cut-del" style="color:var(--err);border-color:rgba(255,93,93,.4)">Remove</button>
       </div>`;
     el.querySelector(".sel").onchange=e=>{ p.selected=e.target.checked;
@@ -532,6 +544,8 @@ function renderEditor(){
       updateRanges(el,p); S.dirty=true; };
     el.querySelector(".frame").onclick=()=>{ const m=$("modal"),v=$("modalVideo");
       v.src=p.thumb; m.classList.add("open"); };
+    el.querySelector(".watch").onclick=()=>watchClip(p);
+    el.querySelector(".kit").onclick=()=>copyKit(p);
     el.querySelector(".cut-del").onclick=()=>{ p.selected=false;
       el.classList.add("off"); S.dirty=true; toast("Removed \u2014 the scene stays saved just case, toggle it back with the switch.",true); };
     grid.appendChild(el);
@@ -553,6 +567,55 @@ function scheduleThumb(p,t){
       if(img) img.src=p.thumb+"?t="+Date.now();
     }catch(e){}
   }, 450);
+}
+async function watchClip(p){
+  const m=$("modal"), v=$("modalVideo");
+  v.src=""; m.classList.add("open");
+  toast("Building a quick preview… (a few seconds)");
+  try{
+    const r=await fetch(`/api/jobs/${S.job.id}/preview/${p.name}`, { method:"POST",
+      headers:{"Content-Type":"application/json"}, body:"{}" });
+    const done = await pollPreview(p.name);
+    if(done){ v.src=done; v.play().catch(()=>{}); }
+    else { toast("Preview timed out — try again in a moment", true); m.classList.remove("open"); }
+  }catch(e){ toast("Preview failed", true); }
+}
+function pollPreview(name){
+  return new Promise((resolve)=>{
+    const t0=Date.now(); const iv=setInterval(async ()=>{
+      try{
+        const r=await fetch(`/api/jobs/${S.job.id}/previews/${name}.mp4?t=${Date.now()}`, {cache:"no-store"});
+        if(r.ok){ clearInterval(iv); resolve(`/api/jobs/${S.job.id}/previews/${name}.mp4`); }
+        else if(Date.now()-t0>40000){ clearInterval(iv); resolve(null); }
+      }catch(e){ if(Date.now()-t0>40000){ clearInterval(iv); resolve(null); } }
+    }, 1500);
+  });
+}
+async function copyKit(p){
+  try{
+    const r=await fetch(`/api/jobs/${S.job.id}/hashtags/${p.name}`);
+    const kit=await r.json();
+    try{
+      await navigator.clipboard.writeText(kit.copy_text);
+      toast("Upload kit copied — paste into Shorts/Reels/TikTok");
+    }catch(e){
+      // clipboard blocked (non-secure context) — put it in an input for manual copy
+      openKitModal(kit);
+    }
+  }catch(e){ toast("Couldn't build upload kit", true); }
+}
+function openKitModal(kit){
+  const m=$("modal"), v=$("modalVideo");
+  v.pause(); v.classList.add("hidden"); v.removeAttribute("src");
+  let box=m.querySelector(".kit-box");
+  if(!box){
+    box=document.createElement("textarea");
+    box.className="kit-box"; box.readOnly=true; box.spellcheck=false;
+    box.style.cssText="max-width:min(480px,92vw);width:92vw;min-height:200px;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;color:var(--text);padding:14px;font-size:14px;font-family:inherit;margin:auto;";
+    m.appendChild(box);
+  }
+  box.value=kit.copy_text; box.classList.remove("hidden");
+  m.classList.add("open");
 }
 async function saveEditorThen(next){
   if(S.dirty){ try{ await fetch(`/api/jobs/${S.job.id}`, { method:"PATCH",
@@ -635,7 +698,6 @@ $("addCueBtn").onclick=()=>{ const p=S.activeCap; if(!p) return;
   $("capList").querySelectorAll(".mini").forEach(x=>x.remove());
   $("capList").appendChild(cueRow(p,c,cues.length-1));
   p.caption_count=cues.length; updateChip(p);
-  c.start && c.start; // no-op keep simple
 };
 
 /* save captions helper (normalise end times) */
@@ -678,6 +740,21 @@ function watchRender(id){
   },1000);
 }
 $("backToEditor").onclick=async ()=>{ await persistCaptions(); show("screen-editor"); renderEditor(); };
+$("titlecaseBtn").onclick=async ()=>{
+  const p=S.activeCap; if(!p) return;
+  const cues=S.caps.get(p.name)||[];
+  cues.forEach(c=>{ if(c.text) c.text=titleCase(c.text); });
+  S.caps.set(p.name,cues);
+  $("capList").innerHTML="";
+  cues.forEach((c,i)=>$("capList").appendChild(cueRow(p,c,i)));
+  await persistCaptions();
+  toast("Captions capitalised");
+};
+$("watchCapBtn").onclick=async ()=>{
+  const p=S.activeCap; if(!p) return;
+  await saveEditorThen(null); await persistCaptions();
+  watchClip(p);
+};
 
 /* ============================================================
    STEP 4 \u2014 EXPORT
@@ -698,20 +775,75 @@ function enterDone(j){
         <button class="btn ghost sm play" data-u="${c.url}">\u25b6 Preview</button>
         <a class="btn sm" href="${c.url}" download>\u2b07 Download</a>
         ${c.caption_url?`<a class="btn ghost sm" href="${c.caption_url}" download>.srt</a>`:""}
+        <button class="btn ghost sm kit2">\ud83d\udccb Kit</button>
       </div>`;
     el.querySelector(".play").onclick=()=>{ const m=$("modal"),v=$("modalVideo");
-      v.src=c.url; m.classList.add("open"); v.play().catch(()=>{}); };
+      v.classList.remove("hidden"); v.src=c.url; m.classList.add("open"); v.play().catch(()=>{}); };
+    el.querySelector(".kit2").onclick=()=>copyKit(c);
     g.appendChild(el);
   });
 }
 $("editBtn").onclick=()=>{ show("screen-editor"); renderEditor(); };
 $("newBtn").onclick=()=>{ clearInterval(S.poll); S.job=null; S.caps=new Map(); S.dirty=false;
   show("screen-new"); };
-$("modal").onclick=e=>{ if(e.target.id==="modal"){ $("modalVideo").pause(); $("modal").classList.remove("open"); } };
+$("modal").onclick=e=>{ if(e.target.id==="modal"){
+  $("modalVideo").pause();
+  const box=document.querySelector(".kit-box"); if(box) box.classList.add("hidden");
+  $("modalVideo").classList.remove("hidden");
+  $("modal").classList.remove("open"); } };
+
+/* ---------- history (recent projects) ---------- */
+async function loadHistory(){
+  try{
+    const r=await fetch("/api/history");
+    if(!r.ok) return;
+    const list=await r.json();
+    if(!list.length) return;
+    $("historyWrap").classList.remove("hidden");
+    const g=$("historyGrid"); g.innerHTML="";
+    list.forEach(h=>{
+      const el=document.createElement("div"); el.className="dl-item";
+      const meta = [
+        h.state==="done" ? `${h.clips} clip${h.clips===1?"":"s"} ready` : `${h.clips} scene${h.clips===1?"":"s"}`,
+        h.duration?`${fmt(h.duration)} total`:"",
+        h.captions?"captioned":"no transcript",
+        h.brand||"",
+      ].filter(Boolean).join(" · ");
+      el.innerHTML=`
+        <div class="ic">${h.state==="done"?"\\ud83c\\udfac":(h.state==="failed"?"\\u26d4":"\\u2702")}</div>
+        <div class="meta">
+          <div class="t">${h.label}</div>
+          <div class="s">${meta} · ${new Date(h.created_at*1000).toLocaleString()}</div>
+        </div>
+        <div class="acts">
+          <button class="btn ghost sm open" data-id="${h.id}">Open</button>
+          ${h.state==="done"?`<a class="btn sm" href="/api/jobs/${h.id}/zip" download>\\u2b07 Zip</a>`:""}
+        </div>`;
+      el.querySelector(".open").onclick=()=>openHistory(h.id);
+      g.appendChild(el);
+    });
+  }catch(e){}
+}
+async function openHistory(id){
+  clearInterval(S.poll);
+  const j=await (await fetch(`/api/jobs/${id}`)).json();
+  S.job=j;
+  if(j.state==="done") enterDone(j);
+  else if(j.state==="failed") show("screen-new");
+  else if(j.state==="review") enterEditor(j);
+  else { show("screen-new"); toast("That project is still processing — reopening it would be neat, but here's home first."); }
+}
+
+/* ---------- auto-capitalise captions ---------- */
+function titleCase(s){
+  return s.replace(/\\w\\S*/g, w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());
+}
+let capMode="as-is";
 
 window.addEventListener("beforeunload", ()=>{ if(S.dirty) return "You have unsaved edits"; });
 
 loadMeta();
+loadHistory();
 </script>
 </body>
 </html>

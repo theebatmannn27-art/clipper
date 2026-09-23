@@ -258,13 +258,49 @@ def render_clips(job: dict, jobdir: str, progress) -> dict:
     return {"clips": made}
 
 
+def build_filter_complex(opts: dict, ass_name: str | None,
+                         width: int = 1080) -> str:
+    """Return the ffmpeg filter_complex for vertical output (default 1080 wide)."""
+    H = int(width * 16 / 9)
+    tail = f",ass={ass_name}" if ass_name else ""
+    if opts.get("mode", "crop") == "blur":
+        return (f"[0:v]split=2[bg][fg];"
+                f"[bg]scale={width}:{H}:force_original_aspect_ratio=increase,"
+                f"crop={width}:{H},boxblur=28:3,eq=brightness=-0.06[bgb];"
+                f"[fg]scale={width}:-2:flags=lanczos[fgs];"
+                f"[bgb][fgs]overlay=(W-w)/2:(H-h)/2[fr];"
+                f"[fr]format=yuv420p{tail}[v]")
+    cx = float(opts.get("cx", 0.5))
+    return (f"[0:v]crop='min(iw,ih*9/16)':ih:'(iw-min(iw,ih*9/16))*{cx}':0,"
+            f"scale={width}:{H}:flags=lanczos,format=yuv420p{tail}[v]")
+
+
+def _transcode(fc: str, in_args: list, out_mp4: str,
+               fast: bool = False, cwd: str | None = None) -> int:
+    """Run one ffmpeg transcode; returns ffmpeg's exit code (cwd lets the
+    .ass path in the filtergraph resolve without escaping)."""
+    cmd = ([FFMPEG, "-y", "-v", "error"] + in_args +
+           ["-filter_complex", fc, "-map", "[v]", "-map", "0:a?"])
+    if fast:
+        cmd += ["-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+                "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "96k",
+                "-ar", "44100", "-movflags", "+faststart"]
+    else:
+        cmd += ["-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
+                "-c:v", "libx264", "-preset", "medium", "-crf", "20",
+                "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", "30",
+                "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+                "-movflags", "+faststart"]
+    cmd.append(out_mp4)
+    r = subprocess.run(cmd, capture_output=True, cwd=cwd)
+    if r.returncode != 0:
+        print(f"[ffmpeg] transcode failed:\n{r.stderr.decode()[-1500:]}")
+    return r.returncode
+
+
 def render_one_clip(video: str, p: dict, clip_cues: list, opts: dict,
                     outdir: str) -> bool:
-    """Render a single 9:16 clip with the given (already clip-relative) cues.
-
-    Mirrors cut.py's per-clip work but keeps the whole style pipeline here so
-    user-edited captions are honoured verbatim. Returns True on success.
-    """
+    """Render a single final 9:16 clip honouring user-edited captions."""
     from assgen import build_ass
     from vttparse import to_srt
     name = p["name"]
@@ -282,33 +318,42 @@ def render_one_clip(video: str, p: dict, clip_cues: list, opts: dict,
     with open(os.path.join(capdir, f"{name}.srt"), "w") as f:
         f.write(to_srt(clip_cues))
 
-    W, H = 1080, 1920
-    ass_name = f"{name}.ass"
-    if opts.get("mode", "crop") == "blur":
-        fc = (f"[0:v]split=2[bg][fg];"
-              f"[bg]scale={W}:{H}:force_original_aspect_ratio=increase,"
-              f"crop={W}:{H},boxblur=28:3,eq=brightness=-0.06[bgb];"
-              f"[fg]scale={W}:-2:flags=lanczos[fgs];"
-              f"[bgb][fgs]overlay=(W-w)/2:(H-h)/2[fr];"
-              f"[fr]format=yuv420p,ass={ass_name}[v]")
-    else:
-        cx = float(opts.get("cx", 0.5))
-        fc = (f"[0:v]crop='min(iw,ih*9/16)':ih:'(iw-min(iw,ih*9/16))*{cx}':0,"
-              f"scale={W}:{H}:flags=lanczos,format=yuv420p,ass={ass_name}[v]")
+    fc = build_filter_complex(opts, os.path.basename(ass_path))
+    in_args = ["-ss", f"{st:.3f}", "-t", f"{dur:.3f}", "-i", video]
+    rc = _transcode(fc, in_args, out_mp4, fast=False, cwd=capdir)
+    return rc == 0 and os.path.exists(out_mp4)
 
-    cmd = [FFMPEG, "-y", "-v", "error",
-           "-ss", f"{st:.3f}", "-t", f"{dur:.3f}", "-i", video,
-           "-filter_complex", fc, "-map", "[v]", "-map", "0:a?",
-           "-af", "loudnorm=I=-14:TP=-1.5:LRA=11",
-           "-c:v", "libx264", "-preset", "medium", "-crf", "20",
-           "-profile:v", "high", "-pix_fmt", "yuv420p", "-r", "30",
-           "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
-           "-movflags", "+faststart", out_mp4]
-    r = subprocess.run(cmd, capture_output=True, cwd=capdir)
-    if r.returncode != 0:
-        print(f"[render:{name}] ffmpeg failed:\n{r.stderr.decode()[-1200:]}")
-        return False
-    return os.path.exists(out_mp4)
+
+def render_preview(job: dict, jobdir: str, name: str, cues: list) -> str:
+    """Render a fast low-res preview of one clip that the browser can play.
+
+    Writes data/jobs/<id>/previews/<name>.mp4 and returns the absolute path.
+    """
+    peak = next((p for p in job.get("peaks", []) if p.get("name") == name), None)
+    if not peak:
+        raise RuntimeError(f"No clip named {name}")
+    src = os.path.join(jobdir, "source.mp4")
+    if not os.path.exists(src):
+        raise RuntimeError("Source video missing")
+    opts = job.get("options", {})
+
+    outdir = os.path.join(jobdir, "previews")
+    capdir = os.path.join(outdir, "captions")
+    os.makedirs(capdir, exist_ok=True)
+    ass_path = os.path.join(capdir, f"{name}.ass")
+    dur = float(peak["end"]) - float(peak["start"])
+    hook_text = (peak.get("hook") or "") if opts.get("hook", True) else ""
+    from assgen import build_ass
+    build_ass(ass_path, cues, max(1.0, dur),
+              hook=hook_text, brand=opts.get("brand", ""),
+              style=opts.get("style", "block"))
+
+    fc = build_filter_complex(opts, os.path.basename(ass_path), width=324)
+    in_args = ["-ss", f"{float(peak['start']):.3f}",
+               "-t", f"{max(1.0, dur):.3f}", "-i", src]
+    out_mp4 = os.path.join(outdir, f"{name}.mp4")
+    _transcode(fc, in_args, out_mp4, fast=True, cwd=capdir)
+    return out_mp4
 
 
 def _retime_for_clip(all_cues: list, words: list | None, start: float,
